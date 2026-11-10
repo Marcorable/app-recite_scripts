@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
+import 'package:maltto/src/features/scripts/presentation/script_navigation_actions.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 import 'package:maltto/src/shared/design/app_components.dart';
 
@@ -255,6 +256,21 @@ final class _ReadingViewState extends State<ReadingView>
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.disableAnimationsOf(context) || _platformReduceMotion;
+    final leaveButton = Semantics(
+      button: true,
+      label: '낭독 나가기',
+      hint: '낭독 종료 확인창을 엽니다',
+      onTap: () => unawaited(_requestLeave()),
+      excludeSemantics: true,
+      child: CupertinoButton(
+        key: const Key('reading-leave-button'),
+        padding: EdgeInsets.zero,
+        minimumSize: const Size.square(AppTargets.preferred),
+        onPressed: _requestLeave,
+        child: const Icon(CupertinoIcons.back),
+      ),
+    );
+    final expandedNavigationAction = usesExpandedNavigationActions;
     return PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -263,21 +279,14 @@ final class _ReadingViewState extends State<ReadingView>
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           automaticallyImplyLeading: false,
-          leading: Semantics(
-            button: true,
-            label: '낭독 나가기',
-            hint: '낭독 종료 확인창을 엽니다',
-            onTap: () => unawaited(_requestLeave()),
-            excludeSemantics: true,
-            child: CupertinoButton(
-              key: const Key('reading-leave-button'),
-              padding: EdgeInsets.zero,
-              minimumSize: const Size.square(AppTargets.preferred),
-              onPressed: _requestLeave,
-              child: const Icon(CupertinoIcons.back),
-            ),
-          ),
+          leading: expandedNavigationAction ? null : leaveButton,
           middle: Text(widget.viewModel.state.scriptTitle),
+          bottom: expandedNavigationAction
+              ? ScriptNavigationActionBar(
+                  leading: leaveButton,
+                  trailing: const SizedBox.shrink(),
+                )
+              : null,
         ),
         child: SafeArea(
           child: AnimatedBuilder(

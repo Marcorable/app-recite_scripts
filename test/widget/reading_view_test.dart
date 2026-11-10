@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
@@ -345,26 +346,34 @@ void main() {
   });
 
   testWidgets('Accessibility XL에서도 현재 어절과 하단 조작의 최소 크기를 유지한다', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    final repository = _ReadingRepository(_state(currentWordIndex: 2));
-    await _pumpView(tester, repository);
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final repository = _ReadingRepository(_state(currentWordIndex: 2));
+      await _pumpView(tester, repository);
 
-    expect(tester.takeException(), isNull);
-    expect(find.byKey(const Key('reading-current-word')), findsOneWidget);
-    expect(
-      tester.getSize(find.byKey(const Key('reading-move-back-button'))).height,
-      greaterThanOrEqualTo(48),
-    );
-    expect(
-      tester.getSize(find.byKey(const Key('reading-leave-button'))).height,
-      greaterThanOrEqualTo(44),
-    );
-    final moveBackRect = tester.getRect(
-      find.byKey(const Key('reading-move-back-button')),
-    );
-    expect(moveBackRect.right, greaterThan(700));
-    expect(moveBackRect.bottom, greaterThan(500));
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('reading-current-word')), findsOneWidget);
+      expect(
+        tester
+            .getSize(find.byKey(const Key('reading-move-back-button')))
+            .height,
+        greaterThanOrEqualTo(48),
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('reading-leave-button'))).height,
+        greaterThanOrEqualTo(48),
+      );
+      final moveBackRect = tester.getRect(
+        find.byKey(const Key('reading-move-back-button')),
+      );
+      expect(moveBackRect.right, greaterThan(700));
+      expect(moveBackRect.bottom, greaterThan(500));
+    } finally {
+      debugDefaultTargetPlatformOverride = originalPlatform;
+    }
   });
 
   testWidgets('좁은 화면의 큰 글씨에서는 반복 상태와 시간을 여러 줄로 배치한다', (tester) async {
