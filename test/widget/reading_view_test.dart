@@ -142,11 +142,25 @@ void main() {
     }
 
     expectActionBackground();
+    expect(
+      find.byKey(const Key('reading-move-back-disabled-indicator')),
+      findsNothing,
+    );
 
     repository.emit(_state(currentWordIndex: 0));
     await tester.pump();
 
     expectActionBackground();
+    final disabledIndicator = find.byKey(
+      const Key('reading-move-back-disabled-indicator'),
+    );
+    expect(disabledIndicator, findsOneWidget);
+    expect(
+      tester.widget<Icon>(disabledIndicator),
+      isA<Icon>()
+          .having((icon) => icon.icon, 'icon', CupertinoIcons.slash_circle_fill)
+          .having((icon) => icon.color, 'color', AppColors.brand),
+    );
     final button = tester.widget<CupertinoButton>(
       find.byKey(const Key('reading-move-back-button')),
     );

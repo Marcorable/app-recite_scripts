@@ -171,9 +171,25 @@ final class _MoveBackAction extends StatelessWidget {
                 key: const Key('reading-move-back-button'),
                 padding: EdgeInsets.zero,
                 onPressed: canMoveBack ? onMoveBack : null,
-                child: const Icon(
-                  CupertinoIcons.arrow_uturn_left,
-                  color: AppColors.brand,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(
+                      CupertinoIcons.arrow_uturn_left,
+                      color: AppColors.brand,
+                    ),
+                    if (!canMoveBack)
+                      const Positioned(
+                        right: AppSpacing.small,
+                        bottom: AppSpacing.small,
+                        child: Icon(
+                          CupertinoIcons.slash_circle_fill,
+                          key: Key('reading-move-back-disabled-indicator'),
+                          color: AppColors.brand,
+                          size: 16,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
