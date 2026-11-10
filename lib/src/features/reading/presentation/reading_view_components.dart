@@ -50,6 +50,8 @@ final class _ReadingStatus extends StatelessWidget {
     final elapsedText = _formatElapsed(state.elapsed);
     final statusStyle = CupertinoTheme.of(context).textTheme.textStyle
         .copyWith(fontWeight: FontWeight.w600);
+    final elapsedStyle = CupertinoTheme.of(context).textTheme.textStyle
+        .copyWith(color: CupertinoColors.secondaryLabel);
     final repetitionStatus = Semantics(
       label:
           '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
@@ -66,7 +68,7 @@ final class _ReadingStatus extends StatelessWidget {
       child: Text(
         elapsedText,
         key: const Key('reading-elapsed-time'),
-        style: const TextStyle(color: CupertinoColors.secondaryLabel),
+        style: elapsedStyle,
       ),
     );
     return Padding(
@@ -102,10 +104,7 @@ final class _ReadingStatus extends StatelessWidget {
 
               final requiredWidth =
                   textWidth(repetitionText, statusStyle) +
-                  textWidth(
-                    elapsedText,
-                    const TextStyle(color: CupertinoColors.secondaryLabel),
-                  ) +
+                  textWidth(elapsedText, elapsedStyle) +
                   AppSpacing.medium;
               if (requiredWidth > constraints.maxWidth) {
                 return Column(

@@ -48,6 +48,16 @@ void main() {
     expect(find.bySemanticsLabel('현재 2회차, 전체 3회, 1회 남음'), findsOneWidget);
     expect(find.text('01:02:03'), findsOneWidget);
     expect(find.bySemanticsLabel('경과 시간, 1시간 2분 3초'), findsOneWidget);
+    final context = tester.element(
+      find.byKey(const Key('reading-elapsed-time')),
+    );
+    final elapsed = tester.widget<Text>(
+      find.byKey(const Key('reading-elapsed-time')),
+    );
+    expect(
+      elapsed.style?.fontSize,
+      CupertinoTheme.of(context).textTheme.textStyle.fontSize,
+    );
     expect(find.byKey(const Key('reading-progress-status')), findsNothing);
     expect(
       tester.getTopLeft(find.text('2/3회')).dx,
