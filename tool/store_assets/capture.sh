@@ -9,6 +9,9 @@ IOS_IPAD_DEVICE_NAME="${IOS_IPAD_DEVICE_NAME:-iPad Pro 13-inch (M5)}"
 IOS_IPHONE_DEVICE_ID="${IOS_IPHONE_DEVICE_ID:-${IOS_DEVICE_ID:-}}"
 IOS_IPAD_DEVICE_ID="${IOS_IPAD_DEVICE_ID:-}"
 ANDROID_AVD="${ANDROID_AVD:-Medium_Phone_API_36}"
+ANDROID_APPLICATION_ID="${ANDROID_APPLICATION_ID:-com.marcorable.maltto}"
+ANDROID_RESET_APP="${ANDROID_RESET_APP:-false}"
+ANDROID_WIPE_DATA="${ANDROID_WIPE_DATA:-false}"
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
 ADB="${ADB:-$ANDROID_SDK_ROOT/platform-tools/adb}"
 EMULATOR="${EMULATOR:-$ANDROID_SDK_ROOT/emulator/emulator}"
@@ -87,6 +90,9 @@ capture() {
   staging_dir="$(mktemp -d "${output_dir}.tmp.XXXXXX")"
   TEMP_CAPTURE_DIRS+=("$staging_dir")
   if [[ "$platform" == "android" ]]; then
+    if [[ "$ANDROID_RESET_APP" == "true" ]]; then
+      "$ADB" -s "$device_id" uninstall "$ANDROID_APPLICATION_ID" >/dev/null 2>&1 || true
+    fi
     if [[ "$large_text" == "true" ]]; then
       "$ADB" -s "$device_id" shell settings put system font_scale 2.0
     else
@@ -204,7 +210,11 @@ resolve_android_device() {
     return
   fi
 
-  "$EMULATOR" -avd "$ANDROID_AVD" -no-window -no-audio -no-boot-anim &
+  local emulator_arguments=(-avd "$ANDROID_AVD" -no-window -no-audio -no-boot-anim)
+  if [[ "$ANDROID_WIPE_DATA" == "true" ]]; then
+    emulator_arguments+=(-wipe-data -no-snapshot-save)
+  fi
+  "$EMULATOR" "${emulator_arguments[@]}" &
   STARTED_EMULATOR_PID="$!"
   ANDROID_DEVICE_ID="emulator-5554"
   export ANDROID_DEVICE_ID

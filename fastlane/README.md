@@ -29,6 +29,14 @@ iOS와 Android 스토어 스크린샷을 모두 생성하고 검증합니다.
 
 생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.
 
+### compose_store_promotional
+
+```sh
+[bundle exec] fastlane compose_store_promotional
+```
+
+원본 캡처에서 홍보용 스크린샷과 contact sheet를 재생성합니다.
+
 ----
 
 

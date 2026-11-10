@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "locale": "ko-KR",
+  "direction": "workflow-first",
+  "background": "#F3F3FF",
+  "headlineColor": "#24224A",
+  "screens": [
+    {"source": "01-script-list.png", "output": "01-script-list.png", "headline": "읽을 대본을 한곳에서 관리해요"},
+    {"source": "02-script-editor.png", "output": "02-script-editor.png", "headline": "내 대본을 직접 입력해요"},
+    {"source": "03-reading-setup.png", "output": "03-reading-setup.png", "headline": "읽을 횟수를 정해요"},
+    {"source": "04-reading-progress.png", "output": "04-reading-progress.png", "headline": "말하면 현재 어절을 따라가요"}
+  ],
+  "targets": [
+    {"name": "ios-iphone-6.9", "source": "store_assets/screenshots/ios/ko-KR/iphone-6.9", "output": "store_assets/promotional/ios/ko-KR/iphone-6.9", "width": 1320, "height": 2868, "cornerRadiusRatio": 0.085},
+    {"name": "ios-ipad-13", "source": "store_assets/screenshots/ios/ko-KR/ipad-13", "output": "store_assets/promotional/ios/ko-KR/ipad-13", "width": 2064, "height": 2752, "cornerRadiusRatio": 0.028},
+    {"name": "android-phone", "source": "store_assets/screenshots/android/ko-KR/phone", "output": "store_assets/promotional/android/ko-KR/phone", "width": 1080, "height": 1920, "cornerRadiusRatio": 0.04}
+  ]
+}
