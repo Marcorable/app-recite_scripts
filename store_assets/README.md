@@ -21,10 +21,16 @@ bundle exec fastlane android screenshots
 bundle exec fastlane screenshots_all
 ```
 
-기본 iOS 기기는 설치된 최신 `iPhone 18 Pro Max`, Android AVD는
-`Medium_Phone_API_36`이다. 다른 기기를 사용할 때는 각각 `IOS_DEVICE_ID`,
-`ANDROID_DEVICE_ID`를 지정한다. 캡처는 임시 디렉터리에서 완성된 PNG 네 장을
-검증한 뒤 기존 파일을 교체하므로, 중간 실패가 기존 산출물을 지우지 않는다.
+기본 iOS 기기는 설치된 최신 `iPhone 18 Pro Max`와 `iPad Pro 13-inch (M5)`,
+Android AVD는 `Medium_Phone_API_36`이다. 다른 기기를 사용할 때는
+`IOS_IPHONE_DEVICE_ID`, `IOS_IPAD_DEVICE_ID`, `ANDROID_DEVICE_ID`를 지정한다.
+기존 `IOS_DEVICE_ID`는 iPhone 기기 지정값으로 계속 사용할 수 있다. 캡처는 임시
+디렉터리에서 완성된 PNG 네 장을 검증한 뒤 기존 파일을 교체하므로, 중간 실패가
+기존 산출물을 지우지 않는다.
+
+Android는 실기기가 연결돼 있어도 기본적으로 실행 중인 에뮬레이터를 선택하며,
+없으면 지정한 AVD를 시작한다. 실기기를 사용하려는 경우에만 `ANDROID_DEVICE_ID`를
+명시한다.
 
 ## 검증
 
@@ -32,9 +38,9 @@ bundle exec fastlane screenshots_all
 bundle exec fastlane validate_store_assets
 ```
 
-검증은 네 개 시나리오의 존재, Pillow 전체 디코드 기반 PNG 무결성, iOS 6.9형 허용 크기, Android
-1080×1920, 알파 채널 부재, Fastlane 메타데이터 구조, 고정 픽스처 해시와
-개인정보·시크릿 패턴 부재를 확인한다.
+검증은 네 개 시나리오의 존재, Pillow 전체 디코드 기반 PNG 무결성, iPhone
+6.9형·iPad 13형 허용 크기, Android 1080×1920, 알파 채널 부재, Fastlane
+메타데이터 구조, 고정 픽스처 해시와 개인정보·시크릿 패턴 부재를 확인한다.
 
 ## 원칙
 
@@ -45,8 +51,7 @@ bundle exec fastlane validate_store_assets
 
 ## 제출 전 확인
 
-- 현재 Xcode 타깃은 iPhone과 iPad를 함께 지원한다. iPad 지원을 유지하면 App
-  Store 제출 전에 13형 iPad 스크린샷도 필요하다. MAR-33의 확정 범위는 iPhone
-  필수 크기이므로 이 자동화는 iPad 산출물을 만들지 않는다.
+- Xcode 타깃은 iPhone과 iPad를 함께 지원하며, App Store 제출용 iPad 13형
+  기본 화면과 접근성 검토용 200% 큰 글씨 화면을 함께 생성한다.
 - 스토어 문구와 지원·개인정보처리방침 URL은 MAR-34에서 확정한다.
 - 실제 App Store Connect·Google Play Console 업로드는 별도 출시 작업에서만 한다.

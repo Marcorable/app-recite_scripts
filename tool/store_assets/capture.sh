@@ -4,7 +4,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PLATFORM="${1:-all}"
-IOS_DEVICE_NAME="${IOS_DEVICE_NAME:-iPhone 18 Pro Max}"
+IOS_IPHONE_DEVICE_NAME="${IOS_IPHONE_DEVICE_NAME:-${IOS_DEVICE_NAME:-iPhone 18 Pro Max}}"
+IOS_IPAD_DEVICE_NAME="${IOS_IPAD_DEVICE_NAME:-iPad Pro 13-inch (M5)}"
+IOS_IPHONE_DEVICE_ID="${IOS_IPHONE_DEVICE_ID:-${IOS_DEVICE_ID:-}}"
+IOS_IPAD_DEVICE_ID="${IOS_IPAD_DEVICE_ID:-}"
 ANDROID_AVD="${ANDROID_AVD:-Medium_Phone_API_36}"
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
 ADB="${ADB:-$ANDROID_SDK_ROOT/platform-tools/adb}"
@@ -126,11 +129,13 @@ capture() {
 }
 
 resolve_ios_device() {
-  if [[ -n "${IOS_DEVICE_ID:-}" ]]; then
-    printf '%s\n' "$IOS_DEVICE_ID"
+  local device_name="$1"
+  local device_id="$2"
+  if [[ -n "$device_id" ]]; then
+    printf '%s\n' "$device_id"
     return
   fi
-  xcrun simctl list devices available -j | jq -r --arg name "$IOS_DEVICE_NAME" '
+  xcrun simctl list devices available -j | jq -r --arg name "$device_name" '
     [.devices | to_entries[] | .key as $runtime | .value[]
       | select(.name == $name and .isAvailable == true)
       | {runtime: $runtime, udid: .udid}]
@@ -138,11 +143,14 @@ resolve_ios_device() {
   '
 }
 
-capture_ios() {
+capture_ios_device() {
+  local device_name="$1"
+  local configured_device_id="$2"
+  local output_name="$3"
   local device_id
-  device_id="$(resolve_ios_device)"
+  device_id="$(resolve_ios_device "$device_name" "$configured_device_id")"
   if [[ -z "$device_id" ]]; then
-    echo "사용 가능한 $IOS_DEVICE_NAME 시뮬레이터를 찾지 못했습니다." >&2
+    echo "사용 가능한 $device_name 시뮬레이터를 찾지 못했습니다." >&2
     exit 1
   fi
   xcrun simctl boot "$device_id" >/dev/null 2>&1 || true
@@ -150,18 +158,29 @@ capture_ios() {
 
   capture \
     "$device_id" \
-    "$ROOT_DIR/store_assets/screenshots/ios/ko-KR/iphone-6.9" \
+    "$ROOT_DIR/store_assets/screenshots/ios/ko-KR/$output_name" \
     false \
     ios
   capture \
     "$device_id" \
-    "$ROOT_DIR/store_assets/screenshots/qa-large-text/ios/ko-KR" \
+    "$ROOT_DIR/store_assets/screenshots/qa-large-text/ios/ko-KR/$output_name" \
     true \
     ios
 }
 
+capture_ios() {
+  capture_ios_device \
+    "$IOS_IPHONE_DEVICE_NAME" \
+    "$IOS_IPHONE_DEVICE_ID" \
+    iphone-6.9
+  capture_ios_device \
+    "$IOS_IPAD_DEVICE_NAME" \
+    "$IOS_IPAD_DEVICE_ID" \
+    ipad-13
+}
+
 wait_for_android() {
-  "$ADB" wait-for-device
+  "$ADB" -s "$ANDROID_DEVICE_ID" wait-for-device
   local attempt
   for attempt in {1..90}; do
     if [[ "$("$ADB" -s "$ANDROID_DEVICE_ID" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
@@ -177,7 +196,9 @@ resolve_android_device() {
   if [[ -n "${ANDROID_DEVICE_ID:-}" ]]; then
     return
   fi
-  ANDROID_DEVICE_ID="$("$ADB" devices | awk 'NR > 1 && $2 == "device" {print $1; exit}')"
+  ANDROID_DEVICE_ID="$(
+    "$ADB" devices | awk 'NR > 1 && $1 ~ /^emulator-/ && $2 == "device" {print $1; exit}'
+  )"
   if [[ -n "$ANDROID_DEVICE_ID" ]]; then
     export ANDROID_DEVICE_ID
     return

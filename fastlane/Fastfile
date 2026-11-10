@@ -16,7 +16,7 @@ lane :validate_store_assets do
 end
 
 platform :ios do
-  desc 'iPhone 6.9형 기본·큰 글씨 스크린샷을 생성합니다.'
+  desc 'iPhone 6.9형과 iPad 13형 기본·큰 글씨 스크린샷을 생성합니다.'
   lane :screenshots do
     Dir.chdir(ROOT) do
       sh('tool/store_assets/capture.sh ios')

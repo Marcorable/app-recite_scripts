@@ -10,9 +10,11 @@ EXPECTED=(
   04-reading-progress.png
 )
 SCREENSHOT_DIRECTORIES=(
-  "$ROOT_DIR/store_assets/screenshots/ios/ko-KR/iphone-6.9:ios"
+  "$ROOT_DIR/store_assets/screenshots/ios/ko-KR/iphone-6.9:iphone"
+  "$ROOT_DIR/store_assets/screenshots/ios/ko-KR/ipad-13:ipad"
   "$ROOT_DIR/store_assets/screenshots/android/ko-KR/phone:android"
-  "$ROOT_DIR/store_assets/screenshots/qa-large-text/ios/ko-KR:ios"
+  "$ROOT_DIR/store_assets/screenshots/qa-large-text/ios/ko-KR/iphone-6.9:iphone"
+  "$ROOT_DIR/store_assets/screenshots/qa-large-text/ios/ko-KR/ipad-13:ipad"
   "$ROOT_DIR/store_assets/screenshots/qa-large-text/android/ko-KR:android"
 )
 
@@ -53,10 +55,16 @@ validate_files() {
     if [[ "$platform" == "android" && "$dimensions" != "1080x1920" ]]; then
       fail "Android 크기 오류: $path ($dimensions)"
     fi
-    if [[ "$platform" == "ios" ]]; then
+    if [[ "$platform" == "iphone" ]]; then
       case "$dimensions" in
         1260x2736 | 1290x2796 | 1320x2868) ;;
         *) fail "iPhone 6.9형 크기 오류: $path ($dimensions)" ;;
+      esac
+    fi
+    if [[ "$platform" == "ipad" ]]; then
+      case "$dimensions" in
+        2064x2752 | 2048x2732) ;;
+        *) fail "iPad 13형 크기 오류: $path ($dimensions)" ;;
       esac
     fi
   done

@@ -40,7 +40,7 @@ iOS와 Android 스토어 스크린샷을 모두 생성하고 검증합니다.
 [bundle exec] fastlane ios screenshots
 ```
 
-iPhone 6.9형 기본·큰 글씨 스크린샷을 생성합니다.
+iPhone 6.9형과 iPad 13형 기본·큰 글씨 스크린샷을 생성합니다.
 
 ----
 
