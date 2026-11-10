@@ -136,6 +136,119 @@ void main() {
     expect(settingsCalls, 1);
   });
 
+  testWidgets('권한 준비 예외는 안내하고 다음 선택에서 다시 시도할 수 있다', (tester) async {
+    final repository = _WidgetScriptRepository(
+      initialScripts: [
+        _script(id: 1, title: '준비 확인 대본', body: '직접 작성한 문장을 읽습니다.'),
+      ],
+    );
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      _buildAppWithReading(
+        repository,
+        prepareReading: () async {
+          prepareCalls++;
+          throw StateError('플랫폼 준비 실패');
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('준비 확인 대본'));
+    await tester.pumpAndSettle();
+    expect(find.text('낭독을 준비할 수 없습니다'), findsOneWidget);
+    expect(find.textContaining('준비하지 못했습니다'), findsOneWidget);
+    expect(find.byKey(const Key('reading-setup-probe')), findsNothing);
+
+    await tester.tap(find.text('확인'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('준비 확인 대본'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 2);
+  });
+
+  testWidgets('빠른 연속 선택은 권한 준비와 setup sheet를 한 번만 연다', (tester) async {
+    final preparation = Completer<SttPreparation>();
+    final repository = _WidgetScriptRepository(
+      initialScripts: [
+        _script(id: 1, title: '연속 선택 대본', body: '직접 작성한 문장을 읽습니다.'),
+      ],
+    );
+    var prepareCalls = 0;
+    var setupBuilds = 0;
+    await tester.pumpWidget(
+      _buildAppWithReading(
+        repository,
+        prepareReading: () {
+          prepareCalls++;
+          return preparation.future;
+        },
+        readingSetupBuilder: (_) {
+          setupBuilds++;
+          return const ColoredBox(
+            key: Key('reading-setup-probe'),
+            color: CupertinoColors.white,
+          );
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('연속 선택 대본'));
+    await tester.tap(find.text('연속 선택 대본'));
+    await tester.pump();
+    expect(prepareCalls, 1);
+
+    preparation.complete(
+      const SttPreparation(status: SttPreparationStatus.ready),
+    );
+    await tester.pumpAndSettle();
+    expect(setupBuilds, 1);
+    expect(find.byKey(const Key('reading-setup-probe')), findsOneWidget);
+  });
+
+  testWidgets('지원 불가와 모델 준비 중은 안내 후 setup을 열지 않는다', (tester) async {
+    for (final scenario in [
+      (
+        status: SttPreparationStatus.unsupported,
+        message: '이 기기에서 온디바이스 한국어 음성 인식을 사용할 수 없습니다.',
+      ),
+      (
+        status: SttPreparationStatus.modelDownloading,
+        message: '음성 인식을 준비 중입니다. 잠시 후 다시 시도해 주세요.',
+      ),
+    ]) {
+      final repository = _WidgetScriptRepository(
+        initialScripts: [
+          _script(id: 1, title: '상태 확인 대본', body: '직접 작성한 문장을 읽습니다.'),
+        ],
+      );
+      var setupBuilds = 0;
+      await tester.pumpWidget(
+        _buildAppWithReading(
+          repository,
+          prepareReading: () async => SttPreparation(status: scenario.status),
+          readingSetupBuilder: (_) {
+            setupBuilds++;
+            return const SizedBox(key: Key('reading-setup-probe'));
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('상태 확인 대본'));
+      await tester.pumpAndSettle();
+      expect(find.text(scenario.message), findsOneWidget);
+      expect(setupBuilds, 0);
+      expect(find.byKey(const Key('reading-setup-probe')), findsNothing);
+
+      await tester.tap(find.text('확인'));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('빈 제목과 공백뿐인 본문을 같은 화면에서 안내한다', (tester) async {
     final repository = _WidgetScriptRepository();
     await tester.pumpWidget(_buildApp(repository));
@@ -413,6 +526,21 @@ Widget _buildApp(_WidgetScriptRepository repository) {
     scriptListViewModel: ScriptListViewModel(repository),
     createScriptViewModel: () => ScriptCreateViewModel(repository),
     readingSetupBuilder: (_) => const SizedBox.shrink(),
+  );
+}
+
+Widget _buildAppWithReading(
+  _WidgetScriptRepository repository, {
+  required Future<SttPreparation> Function() prepareReading,
+  Widget Function(Script script)? readingSetupBuilder,
+}) {
+  return MalttoApp(
+    scriptListViewModel: ScriptListViewModel(repository),
+    createScriptViewModel: () => ScriptCreateViewModel(repository),
+    readingSetupBuilder:
+        readingSetupBuilder ??
+        (_) => const SizedBox(key: Key('reading-setup-probe')),
+    prepareReading: prepareReading,
   );
 }
 

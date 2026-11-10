@@ -107,6 +107,68 @@ void main() {
     }
   });
 
+  testWidgets('작은 화면과 긴 제목의 Accessibility XL에서도 하단 조작은 고정된다', (tester) async {
+    tester.view.physicalSize = const Size(320, 420);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final readingRepository = _ReadingRepository();
+    addTearDown(readingRepository.dispose);
+    final script = Script(
+      id: 2,
+      title: '작은 화면에서 여러 줄로 표시되는 직접 작성한 매우 긴 대본 제목',
+      body: '직접 작성한 문장을 천천히 읽습니다.',
+      createdAt: DateTime.utc(2026, 11, 10),
+      updatedAt: DateTime.utc(2026, 11, 10),
+    );
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: ReadingSetupView(
+          viewModel: ReadingSetupViewModel(
+            script: script,
+            repository: readingRepository,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final actions = find.byKey(const Key('reading-setup-actions'));
+    final initialActionsRect = tester.getRect(actions);
+    expect(initialActionsRect.bottom, lessThanOrEqualTo(420));
+    for (final key in [
+      const Key('reading-setup-cancel-button'),
+      const Key('reading-setup-start-button'),
+    ]) {
+      final rect = tester.getRect(find.byKey(key));
+      expect(rect.height, greaterThanOrEqualTo(48));
+      expect(initialActionsRect.contains(rect.topLeft), isTrue);
+      expect(initialActionsRect.contains(rect.bottomRight), isTrue);
+    }
+
+    await tester.drag(
+      find.byKey(const Key('reading-setup-content-scroll')),
+      const Offset(0, -180),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(actions),
+      initialActionsRect,
+      reason: '콘텐츠를 스크롤해도 하단 조작은 safe area 안에 고정되어야 한다.',
+    );
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const Key('reading-setup-content-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(scrollable.position.pixels, greaterThan(0));
+  });
+
   testWidgets('모델 준비 중이면 상태를 안내하고 낭독 화면을 열지 않는다', (tester) async {
     final readingRepository = _ReadingRepository(
       startException: const ReadingSessionStartException(

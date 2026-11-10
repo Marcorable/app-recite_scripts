@@ -32,6 +32,8 @@ final class ScriptListView extends StatefulWidget {
 }
 
 final class _ScriptListViewState extends State<ScriptListView> {
+  bool _isOpeningReadingFlow = false;
+
   @override
   void initState() {
     super.initState();
@@ -49,46 +51,64 @@ final class _ScriptListViewState extends State<ScriptListView> {
   }
 
   Future<void> _openReadingSetup(Script script) async {
-    final preparation =
-        await (widget.prepareReading?.call() ??
-            Future.value(
-              const SttPreparation(status: SttPreparationStatus.ready),
-            ));
-    if (!mounted) return;
-    if (preparation.status == SttPreparationStatus.permissionDenied) {
-      await _showPermissionDenied();
-      return;
-    }
-    if (preparation.status != SttPreparationStatus.ready) {
-      await _showPreparationIssue(preparation.status);
-      return;
-    }
-    final result = await showCupertinoModalPopup<ReadingSetupResult>(
-      context: context,
-      barrierColor: AppColors.sheetOverlay,
-      builder: (sheetContext) => Align(
-        alignment: Alignment.bottomCenter,
-        child: SizedBox(
-          width: double.infinity,
-          height: MediaQuery.sizeOf(sheetContext).height.clamp(0, 520),
-          child: ClipRRect(
-            borderRadius: AppRadii.sheet,
-            child: widget.readingSetupBuilder(script),
+    if (_isOpeningReadingFlow) return;
+    _isOpeningReadingFlow = true;
+    try {
+      SttPreparation preparation;
+      try {
+        preparation =
+            await (widget.prepareReading?.call() ??
+                Future.value(
+                  const SttPreparation(status: SttPreparationStatus.ready),
+                ));
+      } on Object {
+        if (!mounted) return;
+        await _showPreparationIssue(
+          const SttPreparation(
+            status: SttPreparationStatus.modelDownloading,
+            failureCode: SttFailureCode.unknown,
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
+      if (preparation.status == SttPreparationStatus.permissionDenied) {
+        await _showPermissionDenied();
+        return;
+      }
+      if (preparation.status != SttPreparationStatus.ready) {
+        await _showPreparationIssue(preparation);
+        return;
+      }
+      final result = await showCupertinoModalPopup<ReadingSetupResult>(
+        context: context,
+        barrierColor: AppColors.sheetOverlay,
+        builder: (sheetContext) => Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: double.infinity,
+            height: MediaQuery.sizeOf(sheetContext).height.clamp(0, 520),
+            child: ClipRRect(
+              borderRadius: AppRadii.sheet,
+              child: widget.readingSetupBuilder(script),
+            ),
           ),
         ),
-      ),
-    );
-    if (!mounted || result == null) return;
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => ReadingView(
-          viewModel: ReadingViewModel(
-            repository: result.repository,
-            initialState: result.initialState,
+      );
+      if (!mounted || result == null) return;
+      await Navigator.of(context).push<void>(
+        CupertinoPageRoute<void>(
+          builder: (_) => ReadingView(
+            viewModel: ReadingViewModel(
+              repository: result.repository,
+              initialState: result.initialState,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _isOpeningReadingFlow = false;
+    }
   }
 
   Future<void> _showPermissionDenied() => showCupertinoDialog<void>(
@@ -116,16 +136,18 @@ final class _ScriptListViewState extends State<ScriptListView> {
     ),
   );
 
-  Future<void> _showPreparationIssue(SttPreparationStatus status) =>
+  Future<void> _showPreparationIssue(SttPreparation preparation) =>
       showCupertinoDialog<void>(
         context: context,
         builder: (dialogContext) => CupertinoAlertDialog(
           title: const Text('낭독을 준비할 수 없습니다'),
-          content: Text(
-            status == SttPreparationStatus.unsupported
-                ? '이 기기에서 온디바이스 한국어 음성 인식을 사용할 수 없습니다.'
-                : '음성 인식을 준비 중입니다. 잠시 후 다시 시도해 주세요.',
-          ),
+          content: Text(switch (preparation) {
+            SttPreparation(status: SttPreparationStatus.unsupported) =>
+              '이 기기에서 온디바이스 한국어 음성 인식을 사용할 수 없습니다.',
+            SttPreparation(failureCode: SttFailureCode.unknown) =>
+              '음성 인식을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            _ => '음성 인식을 준비 중입니다. 잠시 후 다시 시도해 주세요.',
+          }),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(),
