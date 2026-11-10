@@ -157,27 +157,7 @@ ReadingSessionState storeScreenshotReadingState({
   int repetitions = 3,
   int currentWordIndex = 8,
 }) {
-  const words = <String>[
-    '말또',
-    '사용법을',
-    '함께',
-    '익혀보겠습니다.',
-    '먼저',
-    '추가를',
-    '눌러',
-    '제목과',
-    '본문을',
-    '입력합니다.',
-    '저장한',
-    '대본을',
-    '선택하고',
-    '읽을',
-    '횟수를',
-    '정합니다.',
-    '낭독',
-    '시작을',
-    '누릅니다.',
-  ];
+  final words = storeScreenshotBody.split(' ');
   return ReadingSessionState(
     sessionId: 'store-screenshot-session',
     scriptTitle: storeScreenshotTitle,

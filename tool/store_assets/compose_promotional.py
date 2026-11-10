@@ -21,10 +21,16 @@ def font_path() -> Path:
     raise FileNotFoundError("한국어 시스템 글꼴을 찾지 못했습니다.")
 
 
+def load_font(size: int, collection_index: int) -> ImageFont.FreeTypeFont:
+    path = font_path()
+    index = collection_index if path.suffix.lower() in {".ttc", ".otc"} else 0
+    return ImageFont.truetype(str(path), size=size, index=index)
+
+
 def fit_font(draw: ImageDraw.ImageDraw, text: str, width: int, initial: int) -> ImageFont.FreeTypeFont:
     size = initial
     while size >= 24:
-        font = ImageFont.truetype(str(font_path()), size=size, index=9)
+        font = load_font(size=size, collection_index=9)
         box = draw.textbbox((0, 0), text, font=font)
         if box[2] - box[0] <= width:
             return font
@@ -51,7 +57,7 @@ def compose(source_path: Path, destination: Path, target: dict, screen: dict, te
     draw = ImageDraw.Draw(canvas)
     horizontal = round(width * 0.072)
     header_height = round(height * 0.18)
-    step_font = ImageFont.truetype(str(font_path()), size=max(28, round(width * 0.034)), index=7)
+    step_font = load_font(size=max(28, round(width * 0.034)), collection_index=7)
     headline_font = fit_font(draw, screen["headline"], width - 2 * horizontal, max(52, round(width * 0.059)))
     draw.text((horizontal, round(header_height * 0.25)), screen["step"], fill=template["stepColor"], font=step_font)
     draw.text((horizontal, round(header_height * 0.49)), screen["headline"], fill=template["headlineColor"], font=headline_font)

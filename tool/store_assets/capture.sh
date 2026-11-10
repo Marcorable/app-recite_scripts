@@ -10,6 +10,7 @@ IOS_IPHONE_DEVICE_ID="${IOS_IPHONE_DEVICE_ID:-${IOS_DEVICE_ID:-}}"
 IOS_IPAD_DEVICE_ID="${IOS_IPAD_DEVICE_ID:-}"
 ANDROID_AVD="${ANDROID_AVD:-Medium_Phone_API_36}"
 ANDROID_APPLICATION_ID="${ANDROID_APPLICATION_ID:-com.marcorable.maltto}"
+ANDROID_RESET_APP="${ANDROID_RESET_APP:-false}"
 ANDROID_WIPE_DATA="${ANDROID_WIPE_DATA:-false}"
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
 ADB="${ADB:-$ANDROID_SDK_ROOT/platform-tools/adb}"
@@ -89,7 +90,9 @@ capture() {
   staging_dir="$(mktemp -d "${output_dir}.tmp.XXXXXX")"
   TEMP_CAPTURE_DIRS+=("$staging_dir")
   if [[ "$platform" == "android" ]]; then
-    "$ADB" -s "$device_id" uninstall "$ANDROID_APPLICATION_ID" >/dev/null 2>&1 || true
+    if [[ "$ANDROID_RESET_APP" == "true" ]]; then
+      "$ADB" -s "$device_id" uninstall "$ANDROID_APPLICATION_ID" >/dev/null 2>&1 || true
+    fi
     if [[ "$large_text" == "true" ]]; then
       "$ADB" -s "$device_id" shell settings put system font_scale 2.0
     else
