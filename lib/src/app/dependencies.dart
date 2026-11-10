@@ -28,6 +28,8 @@ Widget createApp() {
         repository: readingSessionRepository,
       ),
     ),
+    prepareReading: readingSessionRepository.prepareForReading,
+    openAppSettings: readingSessionRepository.openAppSettings,
     onDispose: () async {
       await readingSessionRepository.dispose();
       await database.close();

@@ -43,6 +43,8 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
   @override
   Stream<ReadingSessionState> get states => _states.stream;
 
+  Future<SttPreparation> prepareForReading() => _prepareStt();
+
   @override
   Future<ReadingSessionState> start({
     required Script script,

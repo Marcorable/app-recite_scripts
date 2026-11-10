@@ -1,4 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
+import 'package:maltto/src/features/reading/presentation/reading_view.dart';
+import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
@@ -6,18 +9,23 @@ import 'package:maltto/src/features/scripts/presentation/script_list_components.
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_navigation_actions.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
+import 'package:maltto/src/infrastructure/stt/stt_models.dart';
 
 final class ScriptListView extends StatefulWidget {
   const ScriptListView({
     required this.viewModel,
     required this.createScriptViewModel,
     required this.readingSetupBuilder,
+    this.prepareReading,
+    this.openAppSettings,
     super.key,
   });
 
   final ScriptListViewModel viewModel;
   final ScriptCreateViewModel Function() createScriptViewModel;
   final Widget Function(Script script) readingSetupBuilder;
+  final Future<SttPreparation> Function()? prepareReading;
+  final Future<bool> Function()? openAppSettings;
 
   @override
   State<ScriptListView> createState() => _ScriptListViewState();
@@ -33,6 +41,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
   Future<void> _openCreateView() async {
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
+        fullscreenDialog: true,
         builder: (_) =>
             ScriptCreateView(viewModel: widget.createScriptViewModel()),
       ),
@@ -40,12 +49,91 @@ final class _ScriptListViewState extends State<ScriptListView> {
   }
 
   Future<void> _openReadingSetup(Script script) async {
+    final preparation =
+        await (widget.prepareReading?.call() ??
+            Future.value(
+              const SttPreparation(status: SttPreparationStatus.ready),
+            ));
+    if (!mounted) return;
+    if (preparation.status == SttPreparationStatus.permissionDenied) {
+      await _showPermissionDenied();
+      return;
+    }
+    if (preparation.status != SttPreparationStatus.ready) {
+      await _showPreparationIssue(preparation.status);
+      return;
+    }
+    final result = await showCupertinoModalPopup<ReadingSetupResult>(
+      context: context,
+      barrierColor: AppColors.sheetOverlay,
+      builder: (sheetContext) => Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          width: double.infinity,
+          height: MediaQuery.sizeOf(sheetContext).height.clamp(0, 520),
+          child: ClipRRect(
+            borderRadius: AppRadii.sheet,
+            child: widget.readingSetupBuilder(script),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
-        builder: (_) => widget.readingSetupBuilder(script),
+        builder: (_) => ReadingView(
+          viewModel: ReadingViewModel(
+            repository: result.repository,
+            initialState: result.initialState,
+          ),
+        ),
       ),
     );
   }
+
+  Future<void> _showPermissionDenied() => showCupertinoDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => CupertinoAlertDialog(
+      title: const Text('마이크 접근이 필요해요'),
+      content: const Text('설정에서 마이크 접근을 허용한 뒤 다시 시도해 주세요.'),
+      actions: [
+        CupertinoDialogAction(
+          key: const Key('permission-close-button'),
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('닫기'),
+        ),
+        CupertinoDialogAction(
+          key: const Key('permission-settings-button'),
+          isDefaultAction: true,
+          onPressed: () async {
+            Navigator.of(dialogContext).pop();
+            await widget.openAppSettings?.call();
+          },
+          child: const Text('설정 가기'),
+        ),
+      ],
+    ),
+  );
+
+  Future<void> _showPreparationIssue(SttPreparationStatus status) =>
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: const Text('낭독을 준비할 수 없습니다'),
+          content: Text(
+            status == SttPreparationStatus.unsupported
+                ? '이 기기에서 온디바이스 한국어 음성 인식을 사용할 수 없습니다.'
+                : '음성 인식을 준비 중입니다. 잠시 후 다시 시도해 주세요.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
 
   Future<void> _confirmDelete(Script script) async {
     final confirmed = await showCupertinoDialog<bool>(
@@ -100,7 +188,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
     );
 
     return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
+      backgroundColor: AppColors.canvas,
       child: Stack(
         children: [
           AnimatedBuilder(

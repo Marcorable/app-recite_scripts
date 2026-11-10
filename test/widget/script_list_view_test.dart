@@ -9,6 +9,8 @@ import 'package:maltto/src/features/scripts/data/script_repository.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
+import 'package:maltto/src/infrastructure/stt/stt_models.dart';
+import 'package:maltto/src/shared/design/app_tokens.dart';
 
 void main() {
   testWidgets('시스템이 다크 모드여도 앱은 라이트 모드를 유지한다', (tester) async {
@@ -23,7 +25,7 @@ void main() {
     expect(CupertinoTheme.of(context).brightness, Brightness.light);
     expect(
       CupertinoTheme.of(context).scaffoldBackgroundColor,
-      CupertinoColors.systemBackground.resolveFrom(context),
+      AppColors.canvas,
     );
   });
 
@@ -73,6 +75,65 @@ void main() {
 
     expect(find.text('저장된 대본이 없습니다.'), findsOneWidget);
     expect(repository.scripts, isEmpty);
+  });
+
+  testWidgets('대본 추가는 full-screen modal route로 열리고 취소로 닫힌다', (tester) async {
+    final repository = _WidgetScriptRepository();
+    await tester.pumpWidget(_buildApp(repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('script-list-add-button')));
+    await tester.pumpAndSettle();
+
+    final route = ModalRoute.of(
+      tester.element(find.byKey(const Key('script-title-field'))),
+    );
+    expect(route, isA<CupertinoPageRoute<void>>());
+    expect((route! as CupertinoPageRoute<void>).fullscreenDialog, isTrue);
+
+    await tester.tap(find.byKey(const Key('script-create-cancel-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('script-title-field')), findsNothing);
+  });
+
+  testWidgets('권한 거부는 OS 요청을 반복하지 않고 앱 설정 안내를 표시한다', (tester) async {
+    final script = _script(id: 1, title: '권한 확인 대본', body: '직접 작성한 문장을 읽습니다.');
+    var prepareCalls = 0;
+    var settingsCalls = 0;
+    await tester.pumpWidget(
+      MalttoApp(
+        scriptListViewModel: ScriptListViewModel(
+          _WidgetScriptRepository(initialScripts: [script]),
+        ),
+        createScriptViewModel: () =>
+            ScriptCreateViewModel(_WidgetScriptRepository()),
+        readingSetupBuilder: (_) => const SizedBox.shrink(),
+        prepareReading: () async {
+          prepareCalls++;
+          return const SttPreparation(
+            status: SttPreparationStatus.permissionDenied,
+          );
+        },
+        openAppSettings: () async {
+          settingsCalls++;
+          return true;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('권한 확인 대본'));
+    await tester.pumpAndSettle();
+    expect(find.text('마이크 접근이 필요해요'), findsOneWidget);
+    expect(find.text('설정에서 마이크 접근을 허용한 뒤 다시 시도해 주세요.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('permission-close-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('권한 확인 대본'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 2);
+    await tester.tap(find.byKey(const Key('permission-settings-button')));
+    await tester.pumpAndSettle();
+    expect(settingsCalls, 1);
   });
 
   testWidgets('빈 제목과 공백뿐인 본문을 같은 화면에서 안내한다', (tester) async {

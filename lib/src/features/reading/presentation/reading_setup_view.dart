@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view_model.dart';
-import 'package:maltto/src/features/reading/presentation/reading_view.dart';
-import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
+import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
+import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 
 final class ReadingSetupView extends StatefulWidget {
@@ -13,6 +13,16 @@ final class ReadingSetupView extends StatefulWidget {
 
   @override
   State<ReadingSetupView> createState() => _ReadingSetupViewState();
+}
+
+final class ReadingSetupResult {
+  const ReadingSetupResult({
+    required this.initialState,
+    required this.repository,
+  });
+
+  final ReadingSessionState initialState;
+  final ReadingSessionRepository repository;
 }
 
 final class _ReadingSetupViewState extends State<ReadingSetupView>
@@ -40,14 +50,10 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
   Future<void> _start() async {
     final initialState = await widget.viewModel.start();
     if (!mounted || initialState == null) return;
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => ReadingView(
-          viewModel: ReadingViewModel(
-            repository: widget.viewModel.repository,
-            initialState: initialState,
-          ),
-        ),
+    Navigator.of(context).pop(
+      ReadingSetupResult(
+        initialState: initialState,
+        repository: widget.viewModel.repository,
       ),
     );
   }
@@ -74,7 +80,7 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
         : AppTargets.preferred;
 
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('낭독 시작')),
+      backgroundColor: AppColors.canvas,
       child: SafeArea(
         child: AnimatedBuilder(
           animation: widget.viewModel,
@@ -83,6 +89,10 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Center(
+                  child: Text('낭독 설정', style: AppTypography.dialogTitle),
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
                 const Text(
                   '선택한 대본',
                   style: TextStyle(color: CupertinoColors.secondaryLabel),
@@ -216,7 +226,7 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
   };
 
   String _startButtonLabel(ReadingSetupStartIssue? issue) => switch (issue) {
-    null => '시작',
+    null => '낭독 시작',
     ReadingSetupStartIssue.permissionRequired => '권한 허용하고 시작',
     ReadingSetupStartIssue.modelPreparing => '준비 상태 확인',
     _ => '다시 시도',

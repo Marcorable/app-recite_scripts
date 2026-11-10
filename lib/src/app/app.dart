@@ -5,12 +5,16 @@ import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
+import 'package:maltto/src/infrastructure/stt/stt_models.dart';
+import 'package:maltto/src/shared/design/app_tokens.dart';
 
 final class MalttoApp extends StatefulWidget {
   const MalttoApp({
     required this.scriptListViewModel,
     required this.createScriptViewModel,
     required this.readingSetupBuilder,
+    this.prepareReading,
+    this.openAppSettings,
     this.onDispose,
     super.key,
   });
@@ -18,6 +22,8 @@ final class MalttoApp extends StatefulWidget {
   final ScriptListViewModel scriptListViewModel;
   final ScriptCreateViewModel Function() createScriptViewModel;
   final Widget Function(Script script) readingSetupBuilder;
+  final Future<SttPreparation> Function()? prepareReading;
+  final Future<bool> Function()? openAppSettings;
   final Future<void> Function()? onDispose;
 
   @override
@@ -39,13 +45,15 @@ final class _MalttoAppState extends State<MalttoApp> {
       title: '말또',
       theme: const CupertinoThemeData(
         brightness: Brightness.light,
-        primaryColor: CupertinoColors.systemBlue,
-        scaffoldBackgroundColor: CupertinoColors.systemBackground,
+        primaryColor: AppColors.brand,
+        scaffoldBackgroundColor: AppColors.canvas,
       ),
       home: ScriptListView(
         viewModel: widget.scriptListViewModel,
         createScriptViewModel: widget.createScriptViewModel,
         readingSetupBuilder: widget.readingSetupBuilder,
+        prepareReading: widget.prepareReading,
+        openAppSettings: widget.openAppSettings,
       ),
     );
   }
