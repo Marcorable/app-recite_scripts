@@ -25,6 +25,21 @@ platform :ios do
 end
 
 platform :android do
+  desc '서명된 AAB를 Google Play 내부 테스트 트랙에 배포합니다.'
+  lane :internal do
+    upload_to_play_store(
+      package_name: 'com.marcorable.maltto',
+      json_key_data: ENV.fetch('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
+      aab: ENV.fetch('ANDROID_AAB_PATH'),
+      track: 'internal',
+      release_status: 'completed',
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+    )
+  end
+
   desc 'Android phone 기본·큰 글씨 스크린샷을 생성합니다.'
   lane :screenshots do
     Dir.chdir(ROOT) do

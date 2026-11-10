@@ -47,6 +47,14 @@ iPhone 6.9형과 iPad 13형 기본·큰 글씨 스크린샷을 생성합니다.
 
 ## Android
 
+### android internal
+
+```sh
+[bundle exec] fastlane android internal
+```
+
+서명된 AAB를 Google Play 내부 테스트 트랙에 배포합니다.
+
 ### android screenshots
 
 ```sh
