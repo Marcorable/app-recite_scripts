@@ -5,7 +5,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-forbidden_files='\.(p8|p12|mobileprovision|cer|certSigningRequest|keystore)$|(^|/)GoogleService-Info\.plist$|(^|/)\.env($|\.)|Secrets.*\.xcconfig$|secrets.*\.xcconfig$'
+forbidden_files='\.(p8|p12|mobileprovision|cer|certSigningRequest|keystore)$|(^|/)\.env($|\.)|Secrets.*\.xcconfig$|secrets.*\.xcconfig$'
 tracked_files="$(git ls-files)"
 if forbidden_matches="$(printf '%s\n' "$tracked_files" | grep -E "$forbidden_files")"; then
     printf '%s\n' "$forbidden_matches"
@@ -16,7 +16,7 @@ elif [ "$?" -gt 1 ]; then
     exit 1
 fi
 
-secret_pattern='BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}'
+secret_pattern='BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|"type"[[:space:]]*:[[:space:]]*"service_account"|"private_key"[[:space:]]*:|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}'
 if secret_matches="$(git grep -n -I -E "$secret_pattern" -- . ':!scripts/check_public_repo.sh')"; then
     printf '%s\n' "$secret_matches"
     echo "시크릿으로 의심되는 문자열이 있다" >&2
