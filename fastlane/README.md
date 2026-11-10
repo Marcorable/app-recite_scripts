@@ -1,0 +1,64 @@
+fastlane documentation
+----
+
+# Installation
+
+Make sure you have the latest version of the Xcode command line tools installed:
+
+```sh
+xcode-select --install
+```
+
+For _fastlane_ installation instructions, see [Installing _fastlane_](https://docs.fastlane.tools/#installing-fastlane)
+
+# Available Actions
+
+### screenshots_all
+
+```sh
+[bundle exec] fastlane screenshots_all
+```
+
+iOS와 Android 스토어 스크린샷을 모두 생성하고 검증합니다.
+
+### validate_store_assets
+
+```sh
+[bundle exec] fastlane validate_store_assets
+```
+
+생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.
+
+----
+
+
+## iOS
+
+### ios screenshots
+
+```sh
+[bundle exec] fastlane ios screenshots
+```
+
+iPhone 6.9형 기본·큰 글씨 스크린샷을 생성합니다.
+
+----
+
+
+## Android
+
+### android screenshots
+
+```sh
+[bundle exec] fastlane android screenshots
+```
+
+Android phone 기본·큰 글씨 스크린샷을 생성합니다.
+
+----
+
+This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
+
+More information about _fastlane_ can be found on [fastlane.tools](https://fastlane.tools).
+
+The documentation of _fastlane_ can be found on [docs.fastlane.tools](https://docs.fastlane.tools).
