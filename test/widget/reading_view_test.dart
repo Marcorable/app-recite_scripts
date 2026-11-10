@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
@@ -14,6 +15,7 @@ void main() {
     final repository = _ReadingRepository(_state(currentWordIndex: 1));
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('완료한 어절, 오늘'), findsOneWidget);
     expect(find.bySemanticsLabel('현재 어절, 읽을'), findsOneWidget);
@@ -43,10 +45,25 @@ void main() {
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
 
-    expect(find.text('2/3회 · 1회 남음'), findsOneWidget);
+    expect(find.text('2/3회'), findsOneWidget);
     expect(find.bySemanticsLabel('현재 2회차, 전체 3회, 1회 남음'), findsOneWidget);
     expect(find.text('01:02:03'), findsOneWidget);
     expect(find.bySemanticsLabel('경과 시간, 1시간 2분 3초'), findsOneWidget);
+    final context = tester.element(
+      find.byKey(const Key('reading-elapsed-time')),
+    );
+    final elapsed = tester.widget<Text>(
+      find.byKey(const Key('reading-elapsed-time')),
+    );
+    expect(
+      elapsed.style?.fontSize,
+      CupertinoTheme.of(context).textTheme.textStyle.fontSize,
+    );
+    expect(find.byKey(const Key('reading-progress-status')), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('2/3회')).dx,
+      lessThan(tester.getTopLeft(find.text('01:02:03')).dx),
+    );
 
     repository.emit(
       _state(
@@ -121,12 +138,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
-    expect(find.text('낭독 종료'), findsOneWidget);
+    expect(find.byType(ReadingView), findsOneWidget);
+    expect(find.text('낭독 종료'), findsNothing);
+  });
+
+  testWidgets('나가기 확인 중 완료된 세션은 확인창을 닫은 뒤 완료를 알린다', (tester) async {
+    final repository = _ReadingRepository(_state(currentWordIndex: 2));
+    await _pumpView(tester, repository);
+
+    await tester.tap(find.byKey(const Key('reading-leave-button')));
+    await tester.pumpAndSettle();
+    repository.emit(
+      _state(
+        status: ReadingSessionStatus.completed,
+        currentWordIndex: null,
+        elapsed: const Duration(seconds: 7),
+        generation: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('낭독을 종료할까요?'), findsOneWidget);
+    expect(find.text('낭독 완료'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('reading-leave-cancel-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('낭독을 종료할까요?'), findsNothing);
+    expect(find.text('낭독 완료'), findsOneWidget);
+    expect(
+      find.byKey(const Key('reading-completed-return-button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('첫 어절의 나가기도 확인 후 종료한다', (tester) async {
     final repository = _ReadingRepository(_state());
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('reading-leave-button')));
     await tester.pumpAndSettle();
@@ -148,27 +197,32 @@ void main() {
     );
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     expect(find.text('음성 인식을 계속할 수 없습니다'), findsOneWidget);
     expect(find.textContaining('오디오 입력을 사용할 수 없습니다'), findsOneWidget);
     expect(find.textContaining('다른 앱'), findsNothing);
-    expect(
-      find.bySemanticsLabel(RegExp('음성 인식 오류.*오디오 입력을 사용할 수 없습니다')),
-      findsOneWidget,
-    );
-    expect(find.bySemanticsLabel('음성 인식을 계속할 수 없습니다'), findsNothing);
-    expect(
-      find.bySemanticsLabel(
-        '음성 인식에 필요한 오디오 입력을 사용할 수 없습니다. 목록으로 돌아가 마이크와 기기 지원 상태를 확인해 주세요.',
-      ),
-      findsNothing,
-    );
     expect(find.bySemanticsLabel('목록으로'), findsOneWidget);
     expect(
       find.byKey(const Key('reading-exited-return-button')),
       findsOneWidget,
     );
     semantics.dispose();
+  });
+
+  testWidgets('실패 원인 없는 생명주기 종료도 목록 복귀 다이얼로그를 표시한다', (tester) async {
+    final repository = _ReadingRepository(
+      _state(status: ReadingSessionStatus.exited, generation: 2),
+    );
+    await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
+
+    expect(find.text('낭독 종료'), findsOneWidget);
+    expect(
+      find.byKey(const Key('reading-exited-return-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reading-script-scroll')), findsOneWidget);
   });
 
   testWidgets('회차 완료는 중앙 확인창에서 이어하기 전까지 다음 STT를 대기한다', (tester) async {
@@ -223,6 +277,7 @@ void main() {
     expect(repository.continueCallCount, 0);
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
+    expect(find.text('낭독 종료'), findsNothing);
   });
 
   testWidgets('최종 STT 완료 상태는 늦은 실행 상태를 무시하고 목록 복귀를 제공한다', (tester) async {
@@ -237,18 +292,18 @@ void main() {
         generation: 2,
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
     repository.emit(_state(currentWordIndex: 1, generation: 1));
     await tester.pump();
 
     expect(find.text('낭독 완료'), findsOneWidget);
-    expect(find.text('모든 반복 낭독을 완료했습니다.'), findsOneWidget);
-    expect(find.text('낭독 시간: 00:12'), findsOneWidget);
+    expect(find.text('모든 반복 낭독을 완료했습니다.\n낭독 시간 · 00:12'), findsOneWidget);
     expect(
       find.byKey(const Key('reading-completed-return-button')),
       findsOneWidget,
     );
     expect(find.byKey(const Key('reading-current-word')), findsNothing);
+    expect(find.byKey(const Key('reading-script-scroll')), findsOneWidget);
   });
 
   testWidgets('긴 대본은 현재 어절이 바뀔 때 읽을 수 있는 위치로 자동 스크롤한다', (tester) async {
@@ -291,19 +346,60 @@ void main() {
   });
 
   testWidgets('Accessibility XL에서도 현재 어절과 하단 조작의 최소 크기를 유지한다', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final repository = _ReadingRepository(_state(currentWordIndex: 2));
+      await _pumpView(tester, repository);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('reading-current-word')), findsOneWidget);
+      expect(
+        tester
+            .getSize(find.byKey(const Key('reading-move-back-button')))
+            .height,
+        greaterThanOrEqualTo(48),
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('reading-leave-button'))).height,
+        greaterThanOrEqualTo(48),
+      );
+      final moveBackRect = tester.getRect(
+        find.byKey(const Key('reading-move-back-button')),
+      );
+      expect(moveBackRect.right, greaterThan(700));
+      expect(moveBackRect.bottom, greaterThan(500));
+    } finally {
+      debugDefaultTargetPlatformOverride = originalPlatform;
+    }
+  });
+
+  testWidgets('좁은 화면의 큰 글씨에서는 반복 상태와 시간을 여러 줄로 배치한다', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    final repository = _ReadingRepository(_state(currentWordIndex: 2));
+    final repository = _ReadingRepository(
+      _state(totalRepetitions: 10, elapsed: const Duration(minutes: 2)),
+    );
     await _pumpView(tester, repository);
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const Key('reading-current-word')), findsOneWidget);
-    for (final key in [
-      const Key('reading-move-back-button'),
-      const Key('reading-leave-button'),
-    ]) {
-      expect(tester.getSize(find.byKey(key)).height, greaterThanOrEqualTo(48));
-    }
+    expect(find.byKey(const Key('reading-status-stacked')), findsOneWidget);
+  });
+
+  testWidgets('대본 스크롤 하단은 떠 있는 뒤로 액션만큼 여백을 확보한다', (tester) async {
+    final repository = _ReadingRepository(_state());
+    await _pumpView(tester, repository);
+
+    final scroll = tester.widget<SingleChildScrollView>(
+      find.byKey(const Key('reading-script-scroll')),
+    );
+    expect(scroll.padding, const EdgeInsets.fromLTRB(16, 24, 16, 84));
   });
 }
 

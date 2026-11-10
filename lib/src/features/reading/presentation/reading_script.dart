@@ -95,9 +95,11 @@ final class _ReadingScriptState extends State<_ReadingScript> {
     return SingleChildScrollView(
       key: const Key('reading-script-scroll'),
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.large,
-        vertical: AppSpacing.extraLarge,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.large,
+        AppSpacing.extraLarge,
+        AppSpacing.large,
+        _moveBackSurfaceSize + AppSpacing.large,
       ),
       child: Wrap(
         spacing: AppSpacing.extraSmall,

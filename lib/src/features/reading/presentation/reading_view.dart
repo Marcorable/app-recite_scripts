@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
+import 'package:maltto/src/features/scripts/presentation/script_navigation_actions.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 import 'package:maltto/src/shared/design/app_components.dart';
 
@@ -24,6 +25,7 @@ final class _ReadingViewState extends State<ReadingView>
     with WidgetsBindingObserver {
   bool _isLeaving = false;
   bool _repetitionDialogVisible = false;
+  bool _terminalDialogVisible = false;
   late bool _platformReduceMotion;
 
   @override
@@ -32,6 +34,9 @@ final class _ReadingViewState extends State<ReadingView>
     WidgetsBinding.instance.addObserver(this);
     _platformReduceMotion = _readPlatformReduceMotion();
     widget.viewModel.addListener(_handleViewModelChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleViewModelChange();
+    });
   }
 
   @override
@@ -57,16 +62,78 @@ final class _ReadingViewState extends State<ReadingView>
       .reduceMotion;
 
   void _handleViewModelChange() {
-    if (widget.viewModel.state.status !=
-            ReadingSessionStatus.awaitingNextRepetition ||
-        _repetitionDialogVisible ||
-        !mounted) {
+    if (!mounted) return;
+    final state = widget.viewModel.state;
+    if (state.status == ReadingSessionStatus.awaitingNextRepetition &&
+        !_repetitionDialogVisible) {
+      _repetitionDialogVisible = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showNextRepetitionDialog());
+      });
+    }
+    final showsTerminalDialog =
+        state.status == ReadingSessionStatus.completed ||
+        state.status == ReadingSessionStatus.exited;
+    if (showsTerminalDialog && !_terminalDialogVisible && !_isLeaving) {
+      _terminalDialogVisible = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _isLeaving) return;
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          _terminalDialogVisible = false;
+          return;
+        }
+        unawaited(_showTerminalDialog());
+      });
+    }
+  }
+
+  Future<void> _showTerminalDialog() async {
+    if (_isLeaving || ModalRoute.of(context)?.isCurrent != true) {
+      _terminalDialogVisible = false;
       return;
     }
-    _repetitionDialogVisible = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_showNextRepetitionDialog());
-    });
+    final state = widget.viewModel.state;
+    final failure = state.failure;
+    final completed = state.status == ReadingSessionStatus.completed;
+    await showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope<void>(
+        canPop: false,
+        child: CupertinoAlertDialog(
+          title: Text(
+            completed
+                ? '낭독 완료'
+                : failure == null
+                ? '낭독 종료'
+                : '음성 인식을 계속할 수 없습니다',
+          ),
+          content: completed
+              ? Text(
+                  '모든 반복 낭독을 완료했습니다.\n'
+                  '낭독 시간 · ${_formatElapsed(state.elapsed)}',
+                )
+              : failure == null
+              ? null
+              : Text(_failureMessage(failure)),
+          actions: [
+            CupertinoDialogAction(
+              key: Key(
+                completed
+                    ? 'reading-completed-return-button'
+                    : 'reading-exited-return-button',
+              ),
+              isDefaultAction: true,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _returnToList();
+              },
+              child: const Text('목록으로'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showNextRepetitionDialog() async {
@@ -103,6 +170,7 @@ final class _ReadingViewState extends State<ReadingView>
       ),
     );
     _repetitionDialogVisible = false;
+    _recheckTerminalStateAfterDialog();
     if (!mounted ||
         widget.viewModel.state.status !=
             ReadingSessionStatus.awaitingNextRepetition) {
@@ -143,6 +211,7 @@ final class _ReadingViewState extends State<ReadingView>
   Future<bool> _confirmLeave() async {
     final result = await showCupertinoDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => CupertinoAlertDialog(
         title: const Text('낭독을 종료할까요?'),
         content: const Text('현재 진행 상황은 저장되지 않습니다.'),
@@ -161,7 +230,14 @@ final class _ReadingViewState extends State<ReadingView>
         ],
       ),
     );
+    _recheckTerminalStateAfterDialog();
     return result ?? false;
+  }
+
+  void _recheckTerminalStateAfterDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleViewModelChange();
+    });
   }
 
   void _returnToList() {
@@ -180,6 +256,21 @@ final class _ReadingViewState extends State<ReadingView>
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.disableAnimationsOf(context) || _platformReduceMotion;
+    final leaveButton = Semantics(
+      button: true,
+      label: '낭독 나가기',
+      hint: '낭독 종료 확인창을 엽니다',
+      onTap: () => unawaited(_requestLeave()),
+      excludeSemantics: true,
+      child: CupertinoButton(
+        key: const Key('reading-leave-button'),
+        padding: EdgeInsets.zero,
+        minimumSize: const Size.square(AppTargets.preferred),
+        onPressed: _requestLeave,
+        child: const Icon(CupertinoIcons.back),
+      ),
+    );
+    final expandedNavigationAction = usesExpandedNavigationActions;
     return PopScope<void>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -188,35 +279,25 @@ final class _ReadingViewState extends State<ReadingView>
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           automaticallyImplyLeading: false,
+          leading: expandedNavigationAction ? null : leaveButton,
           middle: Text(widget.viewModel.state.scriptTitle),
+          bottom: expandedNavigationAction
+              ? ScriptNavigationActionBar(
+                  leading: leaveButton,
+                  trailing: const SizedBox.shrink(),
+                )
+              : null,
         ),
         child: SafeArea(
           child: AnimatedBuilder(
             animation: widget.viewModel,
             builder: (context, _) {
               final state = widget.viewModel.state;
-              return switch (state.status) {
-                ReadingSessionStatus.running => _RunningSession(
-                  state: state,
-                  reduceMotion: reduceMotion,
-                  onMoveBack: widget.viewModel.moveBackOneWord,
-                  onLeave: _requestLeave,
-                ),
-                ReadingSessionStatus.awaitingNextRepetition => _RunningSession(
-                  state: state,
-                  reduceMotion: reduceMotion,
-                  onMoveBack: widget.viewModel.moveBackOneWord,
-                  onLeave: _requestLeave,
-                ),
-                ReadingSessionStatus.completed => _CompletedSession(
-                  elapsed: state.elapsed,
-                  onReturn: _returnToList,
-                ),
-                ReadingSessionStatus.exited => _ExitedSession(
-                  failure: state.failure,
-                  onReturn: _returnToList,
-                ),
-              };
+              return _RunningSession(
+                state: state,
+                reduceMotion: reduceMotion,
+                onMoveBack: widget.viewModel.moveBackOneWord,
+              );
             },
           ),
         ),
