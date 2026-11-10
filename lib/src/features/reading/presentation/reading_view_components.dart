@@ -48,10 +48,15 @@ final class _ReadingStatus extends StatelessWidget {
     final repetitionText =
         '${state.currentRepetition}/${state.totalRepetitions}회';
     final elapsedText = _formatElapsed(state.elapsed);
-    final statusStyle = CupertinoTheme.of(context).textTheme.textStyle
-        .copyWith(fontWeight: FontWeight.w600);
-    final elapsedStyle = CupertinoTheme.of(context).textTheme.textStyle
-        .copyWith(color: CupertinoColors.secondaryLabel);
+    final defaultStyle = DefaultTextStyle.of(context).style;
+    final statusStyle = defaultStyle.merge(
+      CupertinoTheme.of(context).textTheme.textStyle
+          .copyWith(fontWeight: FontWeight.w600),
+    );
+    final elapsedStyle = defaultStyle.merge(
+      CupertinoTheme.of(context).textTheme.textStyle
+          .copyWith(color: CupertinoColors.secondaryLabel),
+    );
     final repetitionStatus = Semantics(
       label:
           '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
@@ -99,7 +104,9 @@ final class _ReadingStatus extends StatelessWidget {
                   textScaler: textScaler,
                   maxLines: 1,
                 )..layout();
-                return painter.width;
+                final width = painter.width;
+                painter.dispose();
+                return width;
               }
 
               final requiredWidth =
