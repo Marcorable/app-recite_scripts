@@ -4,12 +4,11 @@
   "direction": "workflow-first",
   "background": "#F3F3FF",
   "headlineColor": "#24224A",
-  "stepColor": "#5554D9",
   "screens": [
-    {"source": "01-script-list.png", "output": "01-script-list.png", "step": "1 / 4", "headline": "읽을 대본을 한곳에서 관리해요"},
-    {"source": "02-script-editor.png", "output": "02-script-editor.png", "step": "2 / 4", "headline": "내 대본을 직접 입력해요"},
-    {"source": "03-reading-setup.png", "output": "03-reading-setup.png", "step": "3 / 4", "headline": "읽을 횟수를 정해요"},
-    {"source": "04-reading-progress.png", "output": "04-reading-progress.png", "step": "4 / 4", "headline": "말하면 현재 어절을 따라가요"}
+    {"source": "01-script-list.png", "output": "01-script-list.png", "headline": "읽을 대본을 한곳에서 관리해요"},
+    {"source": "02-script-editor.png", "output": "02-script-editor.png", "headline": "내 대본을 직접 입력해요"},
+    {"source": "03-reading-setup.png", "output": "03-reading-setup.png", "headline": "읽을 횟수를 정해요"},
+    {"source": "04-reading-progress.png", "output": "04-reading-progress.png", "headline": "말하면 현재 어절을 따라가요"}
   ],
   "targets": [
     {"name": "ios-iphone-6.9", "source": "store_assets/screenshots/ios/ko-KR/iphone-6.9", "output": "store_assets/promotional/ios/ko-KR/iphone-6.9", "width": 1320, "height": 2868},

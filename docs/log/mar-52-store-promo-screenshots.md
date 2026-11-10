@@ -66,3 +66,6 @@ bundle exec fastlane validate_store_assets
 통합 테스트에서 명시하도록 수정하고 원본·홍보 결과를 다시 생성했다. 카피 하단이
 전체 높이의 20%를 넘으면 합성을 실패시키고, 실제 UI 하단을 자르던 오프셋도
 제거했다.
+
+Marco의 PR 리뷰에 따라 홍보 카피는 Apple SD Gothic Neo SemiBold로 정리하고
+불필요한 페이지 번호를 제거했다.

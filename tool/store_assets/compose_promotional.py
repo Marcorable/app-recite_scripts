@@ -30,7 +30,7 @@ def load_font(size: int, collection_index: int) -> ImageFont.FreeTypeFont:
 def fit_font(draw: ImageDraw.ImageDraw, text: str, width: int, initial: int) -> ImageFont.FreeTypeFont:
     size = initial
     while size >= 24:
-        font = load_font(size=size, collection_index=9)
+        font = load_font(size=size, collection_index=4)
         box = draw.textbbox((0, 0), text, font=font)
         if box[2] - box[0] <= width:
             return font
@@ -56,13 +56,12 @@ def compose(source_path: Path, destination: Path, target: dict, screen: dict, te
     canvas = Image.new("RGB", (width, height), template["background"])
     draw = ImageDraw.Draw(canvas)
     horizontal = round(width * 0.072)
-    header_height = round(height * 0.18)
-    step_font = load_font(size=max(28, round(width * 0.034)), collection_index=7)
-    headline_font = fit_font(draw, screen["headline"], width - 2 * horizontal, max(52, round(width * 0.059)))
-    draw.text((horizontal, round(header_height * 0.25)), screen["step"], fill=template["stepColor"], font=step_font)
-    draw.text((horizontal, round(header_height * 0.49)), screen["headline"], fill=template["headlineColor"], font=headline_font)
+    header_height = round(height * 0.16)
+    headline_font = fit_font(draw, screen["headline"], width - 2 * horizontal, max(54, round(width * 0.061)))
+    headline_y = round(header_height * 0.42)
+    draw.text((horizontal, headline_y), screen["headline"], fill=template["headlineColor"], font=headline_font)
     headline_box = draw.textbbox(
-        (horizontal, round(header_height * 0.49)),
+        (horizontal, headline_y),
         screen["headline"],
         font=headline_font,
     )
@@ -102,7 +101,7 @@ def contact_sheet(paths: list[Path], destination: Path, label: str) -> None:
     gap, title_height = 32, 92
     sheet = Image.new("RGB", (gap * 5 + 360 * 4, title_height + max(i.height for i in thumbs) + gap), "#ECECF4")
     draw = ImageDraw.Draw(sheet)
-    draw.text((gap, 26), label, fill="#24224A", font=ImageFont.truetype(str(font_path()), size=34, index=9))
+    draw.text((gap, 26), label, fill="#24224A", font=load_font(size=34, collection_index=4))
     for index, image in enumerate(thumbs):
         sheet.paste(image, (gap + index * (360 + gap), title_height))
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -127,8 +126,8 @@ def qa_contact_sheet(default_paths: list[Path], large_paths: list[Path], destina
         "#ECECF4",
     )
     draw = ImageDraw.Draw(sheet)
-    title_font = ImageFont.truetype(str(font_path()), size=32, index=9)
-    label_font = ImageFont.truetype(str(font_path()), size=26, index=9)
+    title_font = load_font(size=32, collection_index=4)
+    label_font = load_font(size=26, collection_index=2)
     draw.text((gap, 24), label, fill="#24224A", font=title_font)
     for row_index, (row_name, images) in enumerate(zip(("기본", "200%"), rows)):
         y = title_height + row_index * (row_height + gap)
