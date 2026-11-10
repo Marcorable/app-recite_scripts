@@ -52,6 +52,7 @@ Tuist/.build/
 vendor/bundle/
 Pods/
 .dart_tool/
+__pycache__/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/

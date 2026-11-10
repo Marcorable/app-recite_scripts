@@ -104,7 +104,7 @@ validate_fixture_manifest() {
     .locale == "ko-KR" and
     .provenance.type == "original" and
     .provenance.containsPersonalData == false and
-    (.scripts | length == 2) and
+    (.scripts | length == 3) and
     all(.scripts[];
       (.id | type == "number") and
       (.title | type == "string" and length > 0) and

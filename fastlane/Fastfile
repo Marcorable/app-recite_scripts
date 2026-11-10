@@ -12,6 +12,15 @@ desc '생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.'
 lane :validate_store_assets do
   Dir.chdir(ROOT) do
     sh('tool/store_assets/validate.sh')
+    sh('python3 tool/store_assets/validate_promotional.py')
+  end
+end
+
+desc '원본 캡처에서 홍보용 스크린샷과 contact sheet를 재생성합니다.'
+lane :compose_store_promotional do
+  Dir.chdir(ROOT) do
+    sh('python3 tool/store_assets/compose_promotional.py')
+    sh('python3 tool/store_assets/validate_promotional.py')
   end
 end
 
