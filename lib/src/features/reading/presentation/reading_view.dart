@@ -76,17 +76,21 @@ final class _ReadingViewState extends State<ReadingView>
     if (showsTerminalDialog && !_terminalDialogVisible && !_isLeaving) {
       _terminalDialogVisible = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted &&
-            !_isLeaving &&
-            ModalRoute.of(context)?.isCurrent == true) {
-          unawaited(_showTerminalDialog());
+        if (!mounted || _isLeaving) return;
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          _terminalDialogVisible = false;
+          return;
         }
+        unawaited(_showTerminalDialog());
       });
     }
   }
 
   Future<void> _showTerminalDialog() async {
-    if (_isLeaving || ModalRoute.of(context)?.isCurrent != true) return;
+    if (_isLeaving || ModalRoute.of(context)?.isCurrent != true) {
+      _terminalDialogVisible = false;
+      return;
+    }
     final state = widget.viewModel.state;
     final failure = state.failure;
     final completed = state.status == ReadingSessionStatus.completed;
@@ -165,6 +169,7 @@ final class _ReadingViewState extends State<ReadingView>
       ),
     );
     _repetitionDialogVisible = false;
+    _recheckTerminalStateAfterDialog();
     if (!mounted ||
         widget.viewModel.state.status !=
             ReadingSessionStatus.awaitingNextRepetition) {
@@ -224,7 +229,14 @@ final class _ReadingViewState extends State<ReadingView>
         ],
       ),
     );
+    _recheckTerminalStateAfterDialog();
     return result ?? false;
+  }
+
+  void _recheckTerminalStateAfterDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleViewModelChange();
+    });
   }
 
   void _returnToList() {
