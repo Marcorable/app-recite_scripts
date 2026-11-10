@@ -72,7 +72,7 @@ final class _ReadingViewState extends State<ReadingView>
     }
     final showsTerminalDialog =
         state.status == ReadingSessionStatus.completed ||
-        (state.status == ReadingSessionStatus.exited && state.failure != null);
+        state.status == ReadingSessionStatus.exited;
     if (showsTerminalDialog && !_terminalDialogVisible) {
       _terminalDialogVisible = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -85,23 +85,27 @@ final class _ReadingViewState extends State<ReadingView>
     final state = widget.viewModel.state;
     final failure = state.failure;
     final completed = state.status == ReadingSessionStatus.completed;
-    if (!completed && failure == null) {
-      _terminalDialogVisible = false;
-      return;
-    }
     await showCupertinoDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => PopScope<void>(
         canPop: false,
         child: CupertinoAlertDialog(
-          title: Text(completed ? '낭독 완료' : '음성 인식을 계속할 수 없습니다'),
-          content: Text(
+          title: Text(
             completed
-                ? '모든 반복 낭독을 완료했습니다.\n'
-                      '낭독 시간 · ${_formatElapsed(state.elapsed)}'
-                : _failureMessage(failure!),
+                ? '낭독 완료'
+                : failure == null
+                ? '낭독 종료'
+                : '음성 인식을 계속할 수 없습니다',
           ),
+          content: completed
+              ? Text(
+                  '모든 반복 낭독을 완료했습니다.\n'
+                  '낭독 시간 · ${_formatElapsed(state.elapsed)}',
+                )
+              : failure == null
+              ? null
+              : Text(_failureMessage(failure)),
           actions: [
             CupertinoDialogAction(
               key: Key(
@@ -263,27 +267,11 @@ final class _ReadingViewState extends State<ReadingView>
             animation: widget.viewModel,
             builder: (context, _) {
               final state = widget.viewModel.state;
-              return switch (state.status) {
-                ReadingSessionStatus.running => _RunningSession(
-                  state: state,
-                  reduceMotion: reduceMotion,
-                  onMoveBack: widget.viewModel.moveBackOneWord,
-                  onLeave: _requestLeave,
-                ),
-                ReadingSessionStatus.awaitingNextRepetition => _RunningSession(
-                  state: state,
-                  reduceMotion: reduceMotion,
-                  onMoveBack: widget.viewModel.moveBackOneWord,
-                  onLeave: _requestLeave,
-                ),
-                ReadingSessionStatus.completed ||
-                ReadingSessionStatus.exited => _RunningSession(
-                  state: state,
-                  reduceMotion: reduceMotion,
-                  onMoveBack: widget.viewModel.moveBackOneWord,
-                  onLeave: _requestLeave,
-                ),
-              };
+              return _RunningSession(
+                state: state,
+                reduceMotion: reduceMotion,
+                onMoveBack: widget.viewModel.moveBackOneWord,
+              );
             },
           ),
         ),

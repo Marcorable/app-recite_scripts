@@ -168,6 +168,21 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('실패 원인 없는 생명주기 종료도 목록 복귀 다이얼로그를 표시한다', (tester) async {
+    final repository = _ReadingRepository(
+      _state(status: ReadingSessionStatus.exited, generation: 2),
+    );
+    await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
+
+    expect(find.text('낭독 종료'), findsOneWidget);
+    expect(
+      find.byKey(const Key('reading-exited-return-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reading-script-scroll')), findsOneWidget);
+  });
+
   testWidgets('회차 완료는 중앙 확인창에서 이어하기 전까지 다음 STT를 대기한다', (tester) async {
     final repository = _ReadingRepository(
       _state(currentWordIndex: 3, totalRepetitions: 2),
@@ -308,6 +323,32 @@ void main() {
     );
     expect(moveBackRect.right, greaterThan(700));
     expect(moveBackRect.bottom, greaterThan(500));
+  });
+
+  testWidgets('좁은 화면의 큰 글씨에서는 반복 상태와 시간을 여러 줄로 배치한다', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final repository = _ReadingRepository(
+      _state(totalRepetitions: 10, elapsed: const Duration(minutes: 2)),
+    );
+    await _pumpView(tester, repository);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('reading-status-stacked')), findsOneWidget);
+  });
+
+  testWidgets('대본 스크롤 하단은 떠 있는 뒤로 액션만큼 여백을 확보한다', (tester) async {
+    final repository = _ReadingRepository(_state());
+    await _pumpView(tester, repository);
+
+    final scroll = tester.widget<SingleChildScrollView>(
+      find.byKey(const Key('reading-script-scroll')),
+    );
+    expect(scroll.padding, const EdgeInsets.fromLTRB(16, 24, 16, 84));
   });
 }
 

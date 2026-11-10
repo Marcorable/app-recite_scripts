@@ -1,17 +1,17 @@
 part of 'reading_view.dart';
 
+const double _moveBackSurfaceSize = 68;
+
 final class _RunningSession extends StatelessWidget {
   const _RunningSession({
     required this.state,
     required this.reduceMotion,
     required this.onMoveBack,
-    required this.onLeave,
   });
 
   final ReadingSessionState state;
   final bool reduceMotion;
   final Future<void> Function() onMoveBack;
-  final Future<void> Function() onLeave;
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +45,30 @@ final class _ReadingStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repetitionText =
+        '${state.currentRepetition}/${state.totalRepetitions}회';
+    final elapsedText = _formatElapsed(state.elapsed);
     final statusStyle = CupertinoTheme.of(context).textTheme.textStyle
         .copyWith(fontWeight: FontWeight.w600);
+    final repetitionStatus = Semantics(
+      label:
+          '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
+      excludeSemantics: true,
+      child: Text(
+        repetitionText,
+        key: const Key('reading-repetition-status'),
+        style: statusStyle,
+      ),
+    );
+    final elapsedStatus = Semantics(
+      label: _elapsedSemantics(state.elapsed),
+      excludeSemantics: true,
+      child: Text(
+        elapsedText,
+        key: const Key('reading-elapsed-time'),
+        style: const TextStyle(color: CupertinoColors.secondaryLabel),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.large,
@@ -58,30 +80,54 @@ final class _ReadingStatus extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 52),
-          child: Row(
-            children: [
-              if (state.showsRepetition)
-                Semantics(
-                  label:
-                      '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
-                  excludeSemantics: true,
-                  child: Text(
-                    '${state.currentRepetition}/${state.totalRepetitions}회',
-                    key: const Key('reading-repetition-status'),
-                    style: statusStyle,
-                  ),
-                ),
-              const Spacer(),
-              Semantics(
-                label: _elapsedSemantics(state.elapsed),
-                excludeSemantics: true,
-                child: Text(
-                  _formatElapsed(state.elapsed),
-                  key: const Key('reading-elapsed-time'),
-                  style: const TextStyle(color: CupertinoColors.secondaryLabel),
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (!state.showsRepetition) {
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: elapsedStatus,
+                );
+              }
+              final textScaler = MediaQuery.textScalerOf(context);
+              final direction = Directionality.of(context);
+              double textWidth(String text, TextStyle style) {
+                final painter = TextPainter(
+                  text: TextSpan(text: text, style: style),
+                  textDirection: direction,
+                  textScaler: textScaler,
+                  maxLines: 1,
+                )..layout();
+                return painter.width;
+              }
+
+              final requiredWidth =
+                  textWidth(repetitionText, statusStyle) +
+                  textWidth(
+                    elapsedText,
+                    const TextStyle(color: CupertinoColors.secondaryLabel),
+                  ) +
+                  AppSpacing.medium;
+              if (requiredWidth > constraints.maxWidth) {
+                return Column(
+                  key: const Key('reading-status-stacked'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: repetitionStatus,
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: elapsedStatus,
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [repetitionStatus, const Spacer(), elapsedStatus],
+              );
+            },
           ),
         ),
       ),
@@ -98,7 +144,7 @@ final class _MoveBackAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 68,
+      dimension: _moveBackSurfaceSize,
       child: AppGlassSurface(
         padding: const EdgeInsets.all(AppSpacing.small),
         child: Semantics(
