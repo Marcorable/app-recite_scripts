@@ -1,13 +1,8 @@
 part of 'reading_view.dart';
 
 final class _CompletedSession extends StatelessWidget {
-  const _CompletedSession({
-    required this.repetitions,
-    required this.elapsed,
-    required this.onReturn,
-  });
+  const _CompletedSession({required this.elapsed, required this.onReturn});
 
-  final int repetitions;
   final Duration elapsed;
   final VoidCallback onReturn;
 
@@ -19,16 +14,16 @@ final class _CompletedSession extends StatelessWidget {
         child: Semantics(
           liveRegion: true,
           container: true,
-          label: '낭독 완료, $repetitions회 낭독했습니다. ${_elapsedSemantics(elapsed)}',
+          label: '낭독 완료, 모든 반복 낭독을 완료했습니다. ${_elapsedSemantics(elapsed)}',
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('완료', style: TextStyle(fontSize: 34)),
+              const Text('낭독 완료', style: TextStyle(fontSize: 34)),
               const SizedBox(height: AppSpacing.medium),
-              Text('$repetitions회 낭독했습니다.'),
+              const Text('모든 반복 낭독을 완료했습니다.'),
               const SizedBox(height: AppSpacing.small),
               Text(
-                _formatElapsed(elapsed),
+                '낭독 시간: ${_formatElapsed(elapsed)}',
                 key: const Key('reading-completed-elapsed-time'),
                 style: const TextStyle(color: CupertinoColors.secondaryLabel),
               ),

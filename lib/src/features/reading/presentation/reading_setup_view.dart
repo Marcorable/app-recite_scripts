@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view_model.dart';
-import 'package:maltto/src/features/reading/presentation/reading_view.dart';
-import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
+import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
+import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 
 final class ReadingSetupView extends StatefulWidget {
@@ -13,6 +13,16 @@ final class ReadingSetupView extends StatefulWidget {
 
   @override
   State<ReadingSetupView> createState() => _ReadingSetupViewState();
+}
+
+final class ReadingSetupResult {
+  const ReadingSetupResult({
+    required this.initialState,
+    required this.repository,
+  });
+
+  final ReadingSessionState initialState;
+  final ReadingSessionRepository repository;
 }
 
 final class _ReadingSetupViewState extends State<ReadingSetupView>
@@ -40,14 +50,10 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
   Future<void> _start() async {
     final initialState = await widget.viewModel.start();
     if (!mounted || initialState == null) return;
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => ReadingView(
-          viewModel: ReadingViewModel(
-            repository: widget.viewModel.repository,
-            initialState: initialState,
-          ),
-        ),
+    Navigator.of(context).pop(
+      ReadingSetupResult(
+        initialState: initialState,
+        repository: widget.viewModel.repository,
       ),
     );
   }
@@ -74,83 +80,120 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
         : AppTargets.preferred;
 
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text('낭독 시작')),
+      backgroundColor: AppColors.canvas,
       child: SafeArea(
         child: AnimatedBuilder(
           animation: widget.viewModel,
-          builder: (context, _) => SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.extraLarge),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  '선택한 대본',
-                  style: TextStyle(color: CupertinoColors.secondaryLabel),
-                ),
-                const SizedBox(height: AppSpacing.small),
-                Text(
-                  widget.viewModel.script.title,
-                  key: const Key('reading-setup-script-title'),
-                  style: CupertinoTheme.of(context).textTheme.navTitleTextStyle,
-                ),
-                if (widget.viewModel.startIssue case final issue?) ...[
-                  const SizedBox(height: AppSpacing.medium),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      _startIssueMessage(issue),
-                      key: const Key('reading-setup-start-status'),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: CupertinoColors.secondaryLabel,
-                      ),
-                    ),
+          builder: (context, _) => Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  key: const Key('reading-setup-content-scroll'),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.extraLarge,
+                    AppSpacing.extraLarge,
+                    AppSpacing.extraLarge,
+                    AppSpacing.large,
                   ),
-                  if (issue == ReadingSetupStartIssue.permissionDenied) ...[
-                    const SizedBox(height: AppSpacing.small),
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: AppTargets.preferredConstraints,
-                        child: CupertinoButton(
-                          key: const Key('reading-setup-settings-button'),
-                          onPressed: widget.viewModel.isOpeningSettings
-                              ? null
-                              : _openAppSettings,
-                          child: widget.viewModel.isOpeningSettings
-                              ? const CupertinoActivityIndicator()
-                              : const Text('설정 열기'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-                const SizedBox(height: AppSpacing.section),
-                Semantics(
-                  container: true,
-                  label: '반복 횟수, ${widget.viewModel.repetitions}회 선택됨',
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('반복 횟수'),
-                      SizedBox(
-                        height: 192,
-                        child: CupertinoPicker.builder(
-                          key: const Key('reading-repetition-picker'),
-                          scrollController: _pickerController,
-                          itemExtent: pickerItemExtent,
-                          useMagnifier: true,
-                          magnification: 1.08,
-                          childCount: 10,
-                          onSelectedItemChanged: (index) =>
-                              widget.viewModel.selectRepetitions(index + 1),
-                          itemBuilder: (_, index) =>
-                              Center(child: Text('${index + 1}회')),
+                      const Center(
+                        child: Text('낭독 설정', style: AppTypography.dialogTitle),
+                      ),
+                      const SizedBox(height: AppSpacing.extraLarge),
+                      const Text(
+                        '선택한 대본',
+                        style: TextStyle(color: CupertinoColors.secondaryLabel),
+                      ),
+                      const SizedBox(height: AppSpacing.small),
+                      Text(
+                        widget.viewModel.script.title,
+                        key: const Key('reading-setup-script-title'),
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .navTitleTextStyle,
+                      ),
+                      if (widget.viewModel.startIssue case final issue?) ...[
+                        const SizedBox(height: AppSpacing.medium),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            _startIssueMessage(issue),
+                            key: const Key('reading-setup-start-status'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                        ),
+                        if (issue ==
+                            ReadingSetupStartIssue.permissionDenied) ...[
+                          const SizedBox(height: AppSpacing.small),
+                          Center(
+                            child: ConstrainedBox(
+                              constraints: AppTargets.preferredConstraints,
+                              child: CupertinoButton(
+                                key: const Key('reading-setup-settings-button'),
+                                onPressed: widget.viewModel.isOpeningSettings
+                                    ? null
+                                    : _openAppSettings,
+                                child: widget.viewModel.isOpeningSettings
+                                    ? const CupertinoActivityIndicator()
+                                    : const Text('설정 열기'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                      const SizedBox(height: AppSpacing.section),
+                      Semantics(
+                        container: true,
+                        label: '반복 횟수, ${widget.viewModel.repetitions}회 선택됨',
+                        child: Column(
+                          children: [
+                            const Text('반복 횟수'),
+                            SizedBox(
+                              height: 192,
+                              child: CupertinoPicker.builder(
+                                key: const Key('reading-repetition-picker'),
+                                scrollController: _pickerController,
+                                itemExtent: pickerItemExtent,
+                                useMagnifier: true,
+                                magnification: 1.08,
+                                childCount: 10,
+                                onSelectedItemChanged: (index) => widget
+                                    .viewModel
+                                    .selectRepetitions(index + 1),
+                                itemBuilder: (_, index) =>
+                                    Center(child: Text('${index + 1}회')),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.section),
-                Row(
+              ),
+              Container(
+                key: const Key('reading-setup-actions'),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.extraLarge,
+                  AppSpacing.small,
+                  AppSpacing.extraLarge,
+                  AppSpacing.medium,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.canvas,
+                  border: Border(
+                    top: BorderSide(
+                      color: AppColors.separator,
+                      width: AppStrokes.hairline,
+                    ),
+                  ),
+                ),
+                child: Row(
                   children: [
                     Expanded(
                       child: ConstrainedBox(
@@ -191,8 +234,8 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -216,7 +259,7 @@ final class _ReadingSetupViewState extends State<ReadingSetupView>
   };
 
   String _startButtonLabel(ReadingSetupStartIssue? issue) => switch (issue) {
-    null => '시작',
+    null => '낭독 시작',
     ReadingSetupStartIssue.permissionRequired => '권한 허용하고 시작',
     ReadingSetupStartIssue.modelPreparing => '준비 상태 확인',
     _ => '다시 시도',

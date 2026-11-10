@@ -48,43 +48,45 @@ final class _ReadingStatus extends StatelessWidget {
         AppSpacing.large,
         AppSpacing.small,
       ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: AppSpacing.extraLarge,
-        runSpacing: AppSpacing.small,
-        children: [
-          if (state.showsRepetition)
+      child: AppGlassSurface(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.extraLarge,
+          runSpacing: AppSpacing.small,
+          children: [
+            if (state.showsRepetition)
+              Semantics(
+                label:
+                    '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
+                excludeSemantics: true,
+                child: Text(
+                  '${state.currentRepetition}/${state.totalRepetitions}회 · '
+                  '${state.totalRepetitions - state.currentRepetition}회 남음',
+                  key: const Key('reading-repetition-status'),
+                  style: statusStyle,
+                ),
+              ),
             Semantics(
-              label:
-                  '현재 ${state.currentRepetition}회차, 전체 ${state.totalRepetitions}회, ${state.totalRepetitions - state.currentRepetition}회 남음',
+              label: '낭독 진행, 전체 ${state.totalWords}어절 중 $completedWords어절 완료',
               excludeSemantics: true,
               child: Text(
-                '${state.currentRepetition}/${state.totalRepetitions}회 · '
-                '${state.totalRepetitions - state.currentRepetition}회 남음',
-                key: const Key('reading-repetition-status'),
+                '$completedWords/${state.totalWords} 어절',
+                key: const Key('reading-progress-status'),
                 style: statusStyle,
               ),
             ),
-          Semantics(
-            label: '낭독 진행, 전체 ${state.totalWords}어절 중 $completedWords어절 완료',
-            excludeSemantics: true,
-            child: Text(
-              '$completedWords/${state.totalWords} 어절',
-              key: const Key('reading-progress-status'),
-              style: statusStyle,
+            Semantics(
+              label: _elapsedSemantics(state.elapsed),
+              excludeSemantics: true,
+              child: Text(
+                _formatElapsed(state.elapsed),
+                key: const Key('reading-elapsed-time'),
+                style: const TextStyle(color: CupertinoColors.secondaryLabel),
+              ),
             ),
-          ),
-          Semantics(
-            label: _elapsedSemantics(state.elapsed),
-            excludeSemantics: true,
-            child: Text(
-              _formatElapsed(state.elapsed),
-              key: const Key('reading-elapsed-time'),
-              style: const TextStyle(color: CupertinoColors.secondaryLabel),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

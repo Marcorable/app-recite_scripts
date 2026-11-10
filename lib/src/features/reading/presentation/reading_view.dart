@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
+import 'package:maltto/src/shared/design/app_components.dart';
 
 part 'reading_view_components.dart';
 part 'reading_script.dart';
@@ -131,9 +132,7 @@ final class _ReadingViewState extends State<ReadingView>
       return;
     }
 
-    final hasProgress =
-        state.currentRepetition > 1 || (state.currentWordIndex ?? 0) > 0;
-    if (hasProgress && !await _confirmLeave()) return;
+    if (!await _confirmLeave()) return;
     if (!mounted) return;
 
     _isLeaving = true;
@@ -146,12 +145,12 @@ final class _ReadingViewState extends State<ReadingView>
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: const Text('낭독을 종료할까요?'),
-        content: const Text('현재 낭독 진행은 저장되지 않습니다.'),
+        content: const Text('현재 진행 상황은 저장되지 않습니다.'),
         actions: [
           CupertinoDialogAction(
             key: const Key('reading-leave-cancel-button'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('계속 낭독'),
+            child: const Text('계속 읽기'),
           ),
           CupertinoDialogAction(
             key: const Key('reading-leave-confirm-button'),
@@ -210,7 +209,6 @@ final class _ReadingViewState extends State<ReadingView>
                   onLeave: _requestLeave,
                 ),
                 ReadingSessionStatus.completed => _CompletedSession(
-                  repetitions: state.totalRepetitions,
                   elapsed: state.elapsed,
                   onReturn: _returnToList,
                 ),

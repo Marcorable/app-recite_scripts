@@ -2,6 +2,10 @@
 
 > Issue #20 산출물. 이 문서는 Flutter 구현에 옮길 최소 디자인 토큰과 검증 기준을 정의한다. 제품 흐름과 동작은 `docs/PRD.md`를 따른다.
 
+## Issue #76 Penpot 적용 메모
+
+Penpot Foundations의 명시 색상은 `AppColors`의 고정 light-theme 역할값으로 반영했다. Penpot에서 수치가 명시되지 않은 radius·shadow·typography는 Cupertino 기본 비례에 맞춰 보수적으로 추론했으며, 커스텀 값은 일반 surface가 아니라 Status/Toolbar와 sheet에만 사용한다. Medium sheet는 최대 520 logical pixel로 두어 일반 iPhone 높이에서는 medium 비율을 유지하고, 작은 화면·큰 글씨에서는 화면 높이 안에서 스크롤되도록 했다. Liquid Glass 효과는 Status/Toolbar에만 제한하고 고대비 접근성 설정에서는 blur와 투명 shadow를 제거한 불투명 `system` surface로 대체한다.
+
 ## 1. 적용 원칙
 
 - **Cupertino 기본값 우선**: 시스템 글꼴, `CupertinoThemeData`, `CupertinoTextThemeData`, `CupertinoColors`를 먼저 사용한다. 별도 값은 낭독 가독성이나 상태 구분에 필요한 경우만 둔다.

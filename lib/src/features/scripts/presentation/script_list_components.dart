@@ -80,7 +80,7 @@ final class ScriptListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final separatorHeight = 1 / MediaQuery.devicePixelRatioOf(context);
     return DecoratedBox(
-      decoration: const BoxDecoration(color: CupertinoColors.systemBackground),
+      decoration: const BoxDecoration(color: AppColors.canvas),
       child: Column(
         children: [
           Semantics(
@@ -121,7 +121,7 @@ final class ScriptListTile extends StatelessWidget {
                         excludeSemantics: true,
                         child: const Icon(
                           CupertinoIcons.delete,
-                          color: CupertinoColors.systemRed,
+                          color: AppColors.destructive,
                         ),
                       ),
                     ),
@@ -133,7 +133,7 @@ final class ScriptListTile extends StatelessWidget {
           Container(
             height: separatorHeight,
             margin: const EdgeInsets.only(left: AppSpacing.large),
-            color: CupertinoColors.separator,
+            color: AppColors.separator,
           ),
         ],
       ),

@@ -124,14 +124,16 @@ void main() {
     expect(find.text('낭독 종료'), findsOneWidget);
   });
 
-  testWidgets('첫 어절의 나가기는 확인 없이 즉시 종료한다', (tester) async {
+  testWidgets('첫 어절의 나가기도 확인 후 종료한다', (tester) async {
     final repository = _ReadingRepository(_state());
     await _pumpView(tester, repository);
 
     await tester.tap(find.byKey(const Key('reading-leave-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('낭독을 종료할까요?'), findsNothing);
+    expect(find.text('낭독을 종료할까요?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('reading-leave-confirm-button')));
+    await tester.pumpAndSettle();
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
   });
@@ -239,9 +241,9 @@ void main() {
     repository.emit(_state(currentWordIndex: 1, generation: 1));
     await tester.pump();
 
-    expect(find.text('완료'), findsOneWidget);
-    expect(find.text('1회 낭독했습니다.'), findsOneWidget);
-    expect(find.text('00:12'), findsOneWidget);
+    expect(find.text('낭독 완료'), findsOneWidget);
+    expect(find.text('모든 반복 낭독을 완료했습니다.'), findsOneWidget);
+    expect(find.text('낭독 시간: 00:12'), findsOneWidget);
     expect(
       find.byKey(const Key('reading-completed-return-button')),
       findsOneWidget,
