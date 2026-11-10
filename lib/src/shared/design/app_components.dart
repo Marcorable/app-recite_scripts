@@ -54,17 +54,22 @@ final class AppGlassSurface extends StatelessWidget {
           width: AppStrokes.hairline,
         ),
         borderRadius: AppRadii.toolbar,
-        boxShadow: reduceTransparency ? null : AppShadows.glass,
       ),
       child: Padding(padding: padding, child: child),
     );
     return reduceTransparency
         ? surface
-        : ClipRRect(
-            borderRadius: AppRadii.toolbar,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: surface,
+        : DecoratedBox(
+            decoration: const BoxDecoration(
+              borderRadius: AppRadii.toolbar,
+              boxShadow: AppShadows.glass,
+            ),
+            child: ClipRRect(
+              borderRadius: AppRadii.toolbar,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: surface,
+              ),
             ),
           );
   }
