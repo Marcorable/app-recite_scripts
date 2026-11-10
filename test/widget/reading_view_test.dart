@@ -128,6 +128,7 @@ void main() {
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
     expect(find.byType(ReadingView), findsOneWidget);
+    expect(find.text('낭독 종료'), findsNothing);
   });
 
   testWidgets('첫 어절의 나가기도 확인 후 종료한다', (tester) async {
@@ -235,6 +236,7 @@ void main() {
     expect(repository.continueCallCount, 0);
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
+    expect(find.text('낭독 종료'), findsNothing);
   });
 
   testWidgets('최종 STT 완료 상태는 늦은 실행 상태를 무시하고 목록 복귀를 제공한다', (tester) async {

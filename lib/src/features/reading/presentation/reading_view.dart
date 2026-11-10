@@ -73,15 +73,20 @@ final class _ReadingViewState extends State<ReadingView>
     final showsTerminalDialog =
         state.status == ReadingSessionStatus.completed ||
         state.status == ReadingSessionStatus.exited;
-    if (showsTerminalDialog && !_terminalDialogVisible) {
+    if (showsTerminalDialog && !_terminalDialogVisible && !_isLeaving) {
       _terminalDialogVisible = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_showTerminalDialog());
+        if (mounted &&
+            !_isLeaving &&
+            ModalRoute.of(context)?.isCurrent == true) {
+          unawaited(_showTerminalDialog());
+        }
       });
     }
   }
 
   Future<void> _showTerminalDialog() async {
+    if (_isLeaving || ModalRoute.of(context)?.isCurrent != true) return;
     final state = widget.viewModel.state;
     final failure = state.failure;
     final completed = state.status == ReadingSessionStatus.completed;
