@@ -11,8 +11,8 @@
     {"source": "04-reading-progress.png", "output": "04-reading-progress.png", "headline": "말하면 현재 어절을 따라가요"}
   ],
   "targets": [
-    {"name": "ios-iphone-6.9", "source": "store_assets/screenshots/ios/ko-KR/iphone-6.9", "output": "store_assets/promotional/ios/ko-KR/iphone-6.9", "width": 1320, "height": 2868},
-    {"name": "ios-ipad-13", "source": "store_assets/screenshots/ios/ko-KR/ipad-13", "output": "store_assets/promotional/ios/ko-KR/ipad-13", "width": 2064, "height": 2752},
-    {"name": "android-phone", "source": "store_assets/screenshots/android/ko-KR/phone", "output": "store_assets/promotional/android/ko-KR/phone", "width": 1080, "height": 1920}
+    {"name": "ios-iphone-6.9", "source": "store_assets/screenshots/ios/ko-KR/iphone-6.9", "output": "store_assets/promotional/ios/ko-KR/iphone-6.9", "width": 1320, "height": 2868, "cornerRadiusRatio": 0.085},
+    {"name": "ios-ipad-13", "source": "store_assets/screenshots/ios/ko-KR/ipad-13", "output": "store_assets/promotional/ios/ko-KR/ipad-13", "width": 2064, "height": 2752, "cornerRadiusRatio": 0.028},
+    {"name": "android-phone", "source": "store_assets/screenshots/android/ko-KR/phone", "output": "store_assets/promotional/android/ko-KR/phone", "width": 1080, "height": 1920, "cornerRadiusRatio": 0.04}
   ]
 }

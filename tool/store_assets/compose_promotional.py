@@ -74,7 +74,7 @@ def compose(source_path: Path, destination: Path, target: dict, screen: dict, te
     shot_size = (round(width * scale), round(height * scale))
     shot_x = (width - shot_size[0]) // 2
     shot_y = height - shot_size[1]
-    radius = max(24, round(width * 0.025))
+    radius = max(24, round(width * target["cornerRadiusRatio"]))
     shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     ImageDraw.Draw(shadow).rounded_rectangle(
         (shot_x, shot_y, shot_x + shot_size[0], shot_y + shot_size[1]),

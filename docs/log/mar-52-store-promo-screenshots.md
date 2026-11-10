@@ -68,4 +68,5 @@ bundle exec fastlane validate_store_assets
 제거했다.
 
 Marco의 PR 리뷰에 따라 홍보 카피는 Apple SD Gothic Neo SemiBold로 정리하고
-불필요한 페이지 번호를 제거했다.
+불필요한 페이지 번호를 제거했다. 기기 외곽 곡률도 공통값 대신 iPhone·iPad·
+Android별 비율로 분리해 iPhone이 Android 카드처럼 보이지 않도록 조정했다.
