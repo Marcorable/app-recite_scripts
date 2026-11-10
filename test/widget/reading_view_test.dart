@@ -9,6 +9,7 @@ import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
+import 'package:maltto/src/shared/design/app_tokens.dart';
 
 void main() {
   testWidgets('완료 현재 대기 어절을 구분하고 Repository 상태로만 전진한다', (tester) async {
@@ -118,6 +119,38 @@ void main() {
       findsOneWidget,
     );
     semantics.dispose();
+  });
+
+  testWidgets('한 어절 뒤로 액션은 활성화와 비활성화 상태에서 원형 배경을 유지한다', (tester) async {
+    final repository = _ReadingRepository(_state(currentWordIndex: 1));
+    await _pumpView(tester, repository);
+
+    final backgroundFinder = find.byKey(
+      const Key('reading-move-back-action-background'),
+    );
+
+    void expectActionBackground() {
+      expect(tester.getSize(backgroundFinder), const Size.square(52));
+      final background = tester.widget<DecoratedBox>(backgroundFinder);
+      expect(
+        background.decoration,
+        const BoxDecoration(
+          color: AppColors.selectionSoft,
+          borderRadius: AppRadii.pill,
+        ),
+      );
+    }
+
+    expectActionBackground();
+
+    repository.emit(_state(currentWordIndex: 0));
+    await tester.pump();
+
+    expectActionBackground();
+    final button = tester.widget<CupertinoButton>(
+      find.byKey(const Key('reading-move-back-button')),
+    );
+    expect(button.onPressed, isNull);
   });
 
   testWidgets('진행된 낭독의 나가기는 확인 후 종료하고 취소하면 계속한다', (tester) async {
