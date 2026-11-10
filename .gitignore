@@ -11,7 +11,6 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
-GoogleService-Info.plist
 *Secrets*.xcconfig
 *secrets*.xcconfig
 *.keystore
@@ -40,7 +39,8 @@ playground.xcworkspace
 .swiftpm/
 Packages/
 Package.resolved.lock
-*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+**/*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+**/*.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # ── 도구 캐시 ──────────────────────────────────────────────────────
 .tuist/

@@ -1,7 +1,5 @@
-import 'package:flutter/widgets.dart';
-import 'package:maltto/src/app/dependencies.dart';
+import 'package:maltto/src/app/bootstrap.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(createApp());
+Future<void> main() async {
+  await bootstrap();
 }
