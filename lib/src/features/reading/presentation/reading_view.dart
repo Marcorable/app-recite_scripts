@@ -24,6 +24,7 @@ final class _ReadingViewState extends State<ReadingView>
     with WidgetsBindingObserver {
   bool _isLeaving = false;
   bool _repetitionDialogVisible = false;
+  bool _terminalDialogVisible = false;
   late bool _platformReduceMotion;
 
   @override
@@ -32,6 +33,9 @@ final class _ReadingViewState extends State<ReadingView>
     WidgetsBinding.instance.addObserver(this);
     _platformReduceMotion = _readPlatformReduceMotion();
     widget.viewModel.addListener(_handleViewModelChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleViewModelChange();
+    });
   }
 
   @override
@@ -57,16 +61,65 @@ final class _ReadingViewState extends State<ReadingView>
       .reduceMotion;
 
   void _handleViewModelChange() {
-    if (widget.viewModel.state.status !=
-            ReadingSessionStatus.awaitingNextRepetition ||
-        _repetitionDialogVisible ||
-        !mounted) {
+    if (!mounted) return;
+    final state = widget.viewModel.state;
+    if (state.status == ReadingSessionStatus.awaitingNextRepetition &&
+        !_repetitionDialogVisible) {
+      _repetitionDialogVisible = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showNextRepetitionDialog());
+      });
+    }
+    final showsTerminalDialog =
+        state.status == ReadingSessionStatus.completed ||
+        (state.status == ReadingSessionStatus.exited && state.failure != null);
+    if (showsTerminalDialog && !_terminalDialogVisible) {
+      _terminalDialogVisible = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showTerminalDialog());
+      });
+    }
+  }
+
+  Future<void> _showTerminalDialog() async {
+    final state = widget.viewModel.state;
+    final failure = state.failure;
+    final completed = state.status == ReadingSessionStatus.completed;
+    if (!completed && failure == null) {
+      _terminalDialogVisible = false;
       return;
     }
-    _repetitionDialogVisible = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_showNextRepetitionDialog());
-    });
+    await showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope<void>(
+        canPop: false,
+        child: CupertinoAlertDialog(
+          title: Text(completed ? '낭독 완료' : '음성 인식을 계속할 수 없습니다'),
+          content: Text(
+            completed
+                ? '모든 반복 낭독을 완료했습니다.\n'
+                      '낭독 시간 · ${_formatElapsed(state.elapsed)}'
+                : _failureMessage(failure!),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              key: Key(
+                completed
+                    ? 'reading-completed-return-button'
+                    : 'reading-exited-return-button',
+              ),
+              isDefaultAction: true,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _returnToList();
+              },
+              child: const Text('목록으로'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showNextRepetitionDialog() async {
@@ -143,6 +196,7 @@ final class _ReadingViewState extends State<ReadingView>
   Future<bool> _confirmLeave() async {
     final result = await showCupertinoDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => CupertinoAlertDialog(
         title: const Text('낭독을 종료할까요?'),
         content: const Text('현재 진행 상황은 저장되지 않습니다.'),
@@ -188,6 +242,20 @@ final class _ReadingViewState extends State<ReadingView>
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           automaticallyImplyLeading: false,
+          leading: Semantics(
+            button: true,
+            label: '낭독 나가기',
+            hint: '낭독 종료 확인창을 엽니다',
+            onTap: () => unawaited(_requestLeave()),
+            excludeSemantics: true,
+            child: CupertinoButton(
+              key: const Key('reading-leave-button'),
+              padding: EdgeInsets.zero,
+              minimumSize: const Size.square(AppTargets.preferred),
+              onPressed: _requestLeave,
+              child: const Icon(CupertinoIcons.back),
+            ),
+          ),
           middle: Text(widget.viewModel.state.scriptTitle),
         ),
         child: SafeArea(
@@ -208,13 +276,12 @@ final class _ReadingViewState extends State<ReadingView>
                   onMoveBack: widget.viewModel.moveBackOneWord,
                   onLeave: _requestLeave,
                 ),
-                ReadingSessionStatus.completed => _CompletedSession(
-                  elapsed: state.elapsed,
-                  onReturn: _returnToList,
-                ),
-                ReadingSessionStatus.exited => _ExitedSession(
-                  failure: state.failure,
-                  onReturn: _returnToList,
+                ReadingSessionStatus.completed ||
+                ReadingSessionStatus.exited => _RunningSession(
+                  state: state,
+                  reduceMotion: reduceMotion,
+                  onMoveBack: widget.viewModel.moveBackOneWord,
+                  onLeave: _requestLeave,
                 ),
               };
             },

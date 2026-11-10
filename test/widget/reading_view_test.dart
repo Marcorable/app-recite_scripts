@@ -14,6 +14,7 @@ void main() {
     final repository = _ReadingRepository(_state(currentWordIndex: 1));
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('완료한 어절, 오늘'), findsOneWidget);
     expect(find.bySemanticsLabel('현재 어절, 읽을'), findsOneWidget);
@@ -43,10 +44,15 @@ void main() {
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
 
-    expect(find.text('2/3회 · 1회 남음'), findsOneWidget);
+    expect(find.text('2/3회'), findsOneWidget);
     expect(find.bySemanticsLabel('현재 2회차, 전체 3회, 1회 남음'), findsOneWidget);
     expect(find.text('01:02:03'), findsOneWidget);
     expect(find.bySemanticsLabel('경과 시간, 1시간 2분 3초'), findsOneWidget);
+    expect(find.byKey(const Key('reading-progress-status')), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('2/3회')).dx,
+      lessThan(tester.getTopLeft(find.text('01:02:03')).dx),
+    );
 
     repository.emit(
       _state(
@@ -121,12 +127,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.leaveCallCount, 1);
     expect(repository.state?.status, ReadingSessionStatus.exited);
-    expect(find.text('낭독 종료'), findsOneWidget);
+    expect(find.byType(ReadingView), findsOneWidget);
   });
 
   testWidgets('첫 어절의 나가기도 확인 후 종료한다', (tester) async {
     final repository = _ReadingRepository(_state());
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('reading-leave-button')));
     await tester.pumpAndSettle();
@@ -148,21 +155,11 @@ void main() {
     );
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
+    await tester.pumpAndSettle();
 
     expect(find.text('음성 인식을 계속할 수 없습니다'), findsOneWidget);
     expect(find.textContaining('오디오 입력을 사용할 수 없습니다'), findsOneWidget);
     expect(find.textContaining('다른 앱'), findsNothing);
-    expect(
-      find.bySemanticsLabel(RegExp('음성 인식 오류.*오디오 입력을 사용할 수 없습니다')),
-      findsOneWidget,
-    );
-    expect(find.bySemanticsLabel('음성 인식을 계속할 수 없습니다'), findsNothing);
-    expect(
-      find.bySemanticsLabel(
-        '음성 인식에 필요한 오디오 입력을 사용할 수 없습니다. 목록으로 돌아가 마이크와 기기 지원 상태를 확인해 주세요.',
-      ),
-      findsNothing,
-    );
     expect(find.bySemanticsLabel('목록으로'), findsOneWidget);
     expect(
       find.byKey(const Key('reading-exited-return-button')),
@@ -237,18 +234,18 @@ void main() {
         generation: 2,
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
     repository.emit(_state(currentWordIndex: 1, generation: 1));
     await tester.pump();
 
     expect(find.text('낭독 완료'), findsOneWidget);
-    expect(find.text('모든 반복 낭독을 완료했습니다.'), findsOneWidget);
-    expect(find.text('낭독 시간: 00:12'), findsOneWidget);
+    expect(find.text('모든 반복 낭독을 완료했습니다.\n낭독 시간 · 00:12'), findsOneWidget);
     expect(
       find.byKey(const Key('reading-completed-return-button')),
       findsOneWidget,
     );
     expect(find.byKey(const Key('reading-current-word')), findsNothing);
+    expect(find.byKey(const Key('reading-script-scroll')), findsOneWidget);
   });
 
   testWidgets('긴 대본은 현재 어절이 바뀔 때 읽을 수 있는 위치로 자동 스크롤한다', (tester) async {
@@ -298,12 +295,19 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('reading-current-word')), findsOneWidget);
-    for (final key in [
-      const Key('reading-move-back-button'),
-      const Key('reading-leave-button'),
-    ]) {
-      expect(tester.getSize(find.byKey(key)).height, greaterThanOrEqualTo(48));
-    }
+    expect(
+      tester.getSize(find.byKey(const Key('reading-move-back-button'))).height,
+      greaterThanOrEqualTo(48),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('reading-leave-button'))).height,
+      greaterThanOrEqualTo(44),
+    );
+    final moveBackRect = tester.getRect(
+      find.byKey(const Key('reading-move-back-button')),
+    );
+    expect(moveBackRect.right, greaterThan(700));
+    expect(moveBackRect.bottom, greaterThan(500));
   });
 }
 

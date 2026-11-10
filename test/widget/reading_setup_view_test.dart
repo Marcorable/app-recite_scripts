@@ -71,7 +71,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(readingRepository.startedRepetitions, 3);
-    expect(find.text('1/3회 · 2회 남음'), findsOneWidget);
+    expect(find.text('1/3회'), findsOneWidget);
     expect(find.byKey(const Key('reading-repetition-status')), findsOneWidget);
   });
 
