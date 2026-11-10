@@ -1,0 +1,34 @@
+ROOT = File.expand_path('..', __dir__)
+
+desc 'iOS와 Android 스토어 스크린샷을 모두 생성하고 검증합니다.'
+lane :screenshots_all do
+  Dir.chdir(ROOT) do
+    sh('tool/store_assets/capture.sh all')
+    sh('tool/store_assets/validate.sh')
+  end
+end
+
+desc '생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.'
+lane :validate_store_assets do
+  Dir.chdir(ROOT) do
+    sh('tool/store_assets/validate.sh')
+  end
+end
+
+platform :ios do
+  desc 'iPhone 6.9형과 iPad 13형 기본·큰 글씨 스크린샷을 생성합니다.'
+  lane :screenshots do
+    Dir.chdir(ROOT) do
+      sh('tool/store_assets/capture.sh ios')
+    end
+  end
+end
+
+platform :android do
+  desc 'Android phone 기본·큰 글씨 스크린샷을 생성합니다.'
+  lane :screenshots do
+    Dir.chdir(ROOT) do
+      sh('tool/store_assets/capture.sh android')
+    end
+  end
+end
