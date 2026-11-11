@@ -136,6 +136,63 @@ void main() {
     expect(sttService.subscriptionCancelCount, 1);
   });
 
+  test('3회 낭독은 회차마다 한 번만 대기하고 새 generation에서 첫 어절로 시작한다', () async {
+    await repository.start(script: _script, repetitions: 3);
+
+    sttService.emit(_transcript(generation: 1, sequence: 1, text: _body));
+    await pumpEventQueue(times: 10);
+
+    expect(
+      repository.state?.status,
+      ReadingSessionStatus.awaitingNextRepetition,
+    );
+    expect(repository.state?.currentRepetition, 2);
+    expect(repository.state?.currentWordIndex, 0);
+    expect(repository.state?.generation, 2);
+    expect(sttService.cancelledSessionIds, ['reading-1']);
+
+    sttService.emit(_transcript(generation: 1, sequence: 2, text: _body));
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 3,
+        kind: SttEventKind.failure,
+        failureCode: SttFailureCode.audio,
+        retryable: false,
+      ),
+    );
+    await repository.continueNextRepetition();
+    await repository.continueNextRepetition();
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.status, ReadingSessionStatus.running);
+    expect(repository.state?.currentWordIndex, 0);
+    expect(sttService.startedGenerations, [1, 2]);
+
+    sttService.emit(_transcript(generation: 2, sequence: 1, text: _body));
+    await pumpEventQueue(times: 10);
+
+    expect(
+      repository.state?.status,
+      ReadingSessionStatus.awaitingNextRepetition,
+    );
+    expect(repository.state?.currentRepetition, 3);
+    expect(repository.state?.currentWordIndex, 0);
+    expect(repository.state?.generation, 3);
+    expect(sttService.cancelledSessionIds, ['reading-1', 'reading-1']);
+
+    await repository.continueNextRepetition();
+    await pumpEventQueue(times: 10);
+    sttService.emit(_transcript(generation: 3, sequence: 1, text: _body));
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.status, ReadingSessionStatus.completed);
+    expect(sttService.startedGenerations, [1, 2, 3]);
+    expect(sttService.subscriptionCancelCount, 1);
+    expect(timerFactory.timers.single.isActive, isFalse);
+  });
+
   test('회차 대기 중 그만하기는 새 STT를 시작하지 않고 자원을 정리한다', () async {
     await repository.start(script: _script, repetitions: 2);
     sttService.emit(
@@ -188,6 +245,24 @@ void main() {
       ),
     );
     expect(repository.state?.currentWordIndex, 2);
+  });
+
+  test('한 어절 뒤로 직후 이전 전사와 timer는 커서를 다시 전진시키지 않는다', () async {
+    await repository.start(script: _script, repetitions: 1);
+    sttService.emit(
+      _transcript(generation: 1, sequence: 1, text: '아침에는 창문을 열고'),
+    );
+    expect(repository.state?.currentWordIndex, 3);
+
+    await repository.moveBackOneWord();
+    now = now.add(const Duration(seconds: 8));
+    timerFactory.timer.fire();
+    sttService.emit(_transcript(generation: 1, sequence: 2, text: _body));
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.currentWordIndex, 2);
+    expect(repository.state?.generation, 2);
+    expect(repository.state?.elapsed, const Duration(seconds: 8));
   });
 
   test('첫 어절에서 뒤로는 STT를 재시작하지 않고 후속 전사를 반영한다', () async {
@@ -370,6 +445,68 @@ void main() {
     expect(sttService.subscriptionCancelCount, 1);
   });
 
+  test('종료 후 늦은 partial final error는 세션 상태를 변경하지 않는다', () async {
+    await repository.start(script: _script, repetitions: 2);
+    sttService.emit(_transcript(generation: 1, sequence: 1, text: '아침에는 창문을'));
+
+    await repository.leave();
+    final exitedState = repository.state;
+    sttService.emit(_transcript(generation: 1, sequence: 2, text: _body));
+    sttService.emit(
+      _transcript(
+        generation: 1,
+        sequence: 3,
+        text: _body,
+        kind: SttEventKind.partial,
+      ),
+    );
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 4,
+        kind: SttEventKind.failure,
+        failureCode: SttFailureCode.audio,
+        retryable: false,
+      ),
+    );
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.status, ReadingSessionStatus.exited);
+    expect(repository.state?.generation, exitedState?.generation);
+    expect(repository.state?.currentWordIndex, exitedState?.currentWordIndex);
+    expect(repository.state?.failure, isNull);
+  });
+
+  test('시작 뒤로 나가기를 반복해도 STT 구독 timer 마이크 세션이 중복되지 않는다', () async {
+    for (var session = 1; session <= 3; session++) {
+      await repository.start(script: _script, repetitions: 2);
+      final sessionId = 'reading-$session';
+      sttService.emit(
+        SttEvent(
+          sessionId: sessionId,
+          generation: 1,
+          sequence: 1,
+          kind: SttEventKind.finalResult,
+          text: '아침에는 창문을 열고',
+        ),
+      );
+      await repository.moveBackOneWord();
+      await pumpEventQueue(times: 10);
+      await repository.leave();
+
+      expect(repository.state?.status, ReadingSessionStatus.exited);
+      expect(sttService.activeSubscriptionCount, 0);
+      expect(sttService.activeRecognitionCount, 0);
+      expect(timerFactory.timers.where((timer) => timer.isActive), isEmpty);
+    }
+
+    expect(sttService.maxActiveSubscriptionCount, 1);
+    expect(sttService.maxActiveRecognitionCount, 1);
+    expect(sttService.subscriptionCancelCount, 3);
+    expect(timerFactory.createCount, 3);
+  });
+
   test('모델 설치가 필요하면 다운로드를 요청한 뒤 ready 상태에서 시작한다', () async {
     sttService.preparation = const SttPreparation(
       status: SttPreparationStatus.modelDownloadRequired,
@@ -444,6 +581,20 @@ void main() {
 }
 
 const _body = '아침에는 창문을 열고 문장을 읽는다';
+
+SttEvent _transcript({
+  required int generation,
+  required int sequence,
+  required String text,
+  SttEventKind kind = SttEventKind.finalResult,
+}) => SttEvent(
+  sessionId: 'reading-1',
+  generation: generation,
+  sequence: sequence,
+  kind: kind,
+  text: text,
+);
+
 final _script = Script(
   id: 1,
   title: '아침 낭독',
@@ -454,11 +605,13 @@ final _script = Script(
 
 final class _FakeTimerFactory {
   late _FakeTimer timer;
+  final List<_FakeTimer> timers = [];
   int createCount = 0;
 
   ReadingSessionTimer create(void Function() onTick) {
     createCount++;
     timer = _FakeTimer(onTick);
+    timers.add(timer);
     return timer;
   }
 }
@@ -483,7 +636,16 @@ final class _FakeSttService implements SttService {
   _FakeSttService() {
     _events = StreamController<SttEvent>.broadcast(
       sync: true,
-      onCancel: () => subscriptionCancelCount++,
+      onListen: () {
+        activeSubscriptionCount++;
+        if (activeSubscriptionCount > maxActiveSubscriptionCount) {
+          maxActiveSubscriptionCount = activeSubscriptionCount;
+        }
+      },
+      onCancel: () {
+        subscriptionCancelCount++;
+        activeSubscriptionCount--;
+      },
     );
   }
 
@@ -491,6 +653,10 @@ final class _FakeSttService implements SttService {
   final List<int> startedGenerations = [];
   final List<String> cancelledSessionIds = [];
   int subscriptionCancelCount = 0;
+  int activeSubscriptionCount = 0;
+  int maxActiveSubscriptionCount = 0;
+  int activeRecognitionCount = 0;
+  int maxActiveRecognitionCount = 0;
   Completer<void>? cancelBarrier;
   SttPreparation preparation = const SttPreparation(
     status: SttPreparationStatus.ready,
@@ -541,6 +707,10 @@ final class _FakeSttService implements SttService {
   @override
   Future<void> start(SttStartRequest request) async {
     startedGenerations.add(request.generation);
+    activeRecognitionCount++;
+    if (activeRecognitionCount > maxActiveRecognitionCount) {
+      maxActiveRecognitionCount = activeRecognitionCount;
+    }
     await startBarrier?.future;
     final startError = this.startError;
     if (startError != null) throw startError;
@@ -549,6 +719,7 @@ final class _FakeSttService implements SttService {
   @override
   Future<void> cancel(String sessionId) async {
     cancelledSessionIds.add(sessionId);
+    if (activeRecognitionCount > 0) activeRecognitionCount--;
     await cancelBarrier?.future;
     final cancelError = this.cancelError;
     if (cancelError != null) throw cancelError;
