@@ -448,6 +448,38 @@ void main() {
     );
     expect(scroll.padding, const EdgeInsets.fromLTRB(16, 24, 16, 84));
   });
+
+  for (final scenario in [
+    (name: 'default', scale: 1.0),
+    (name: 'large-text', scale: 2.0),
+  ]) {
+    testWidgets('낭독 진행 화면 ${scenario.name} 골든', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.scale;
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      final repository = _ReadingRepository(
+        _state(
+          currentWordIndex: 2,
+          currentRepetition: 2,
+          totalRepetitions: 3,
+          elapsed: const Duration(minutes: 1, seconds: 24),
+        ),
+      );
+      await _pumpView(tester, repository);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await expectLater(
+        find.byType(CupertinoApp),
+        matchesGoldenFile('goldens/reading-view-${scenario.name}.png'),
+      );
+    });
+  }
 }
 
 Future<void> _pumpView(
@@ -457,6 +489,7 @@ Future<void> _pumpView(
 }) async {
   await tester.pumpWidget(
     CupertinoApp(
+      debugShowCheckedModeBanner: false,
       home: Builder(
         builder: (context) => MediaQuery(
           data: MediaQuery.of(context)

@@ -542,6 +542,43 @@ void main() {
     expect(tester.getSize(deleteButton.first).height, greaterThanOrEqualTo(48));
     semantics.dispose();
   });
+
+  for (final scenario in [
+    (name: 'default', scale: 1.0),
+    (name: 'large-text', scale: 2.0),
+  ]) {
+    testWidgets('대본 목록과 추가 화면 ${scenario.name} 골든', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.scale;
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      final repository = _WidgetScriptRepository(
+        initialScripts: [
+          _script(id: 1, title: '차분한 연습', body: '직접 작성한 문장을 천천히 읽습니다.'),
+        ],
+      );
+
+      await tester.pumpWidget(_buildApp(repository));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(CupertinoApp),
+        matchesGoldenFile('goldens/script-list-${scenario.name}.png'),
+      );
+
+      await tester.tap(find.byKey(const Key('script-list-add-button')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(CupertinoApp),
+        matchesGoldenFile('goldens/script-create-${scenario.name}.png'),
+      );
+    });
+  }
 }
 
 Widget _buildApp(_WidgetScriptRepository repository) {
