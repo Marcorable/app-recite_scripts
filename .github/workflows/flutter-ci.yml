@@ -45,6 +45,9 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
+      - name: Run Android app unit tests
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest
 
   android-internal:
     name: Google Play Internal deployment
@@ -142,3 +145,22 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build ios --simulator --debug --no-codesign
+      - name: Run iOS app unit tests
+        run: |
+          device_id="$(
+            xcodebuild \
+              -workspace ios/Runner.xcworkspace \
+              -scheme Runner \
+              -showdestinations 2>/dev/null \
+              | sed -nE '/platform:iOS Simulator.*name:iPhone/ {s/.*id:([^,}]+).*/\1/p; q;}' \
+              | xargs
+          )"
+          if [[ -z "${device_id}" ]]; then
+            echo "::error::No available iPhone Simulator was found"
+            exit 1
+          fi
+          xcodebuild test \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -destination "platform=iOS Simulator,id=${device_id}" \
+            CODE_SIGNING_ALLOWED=NO
