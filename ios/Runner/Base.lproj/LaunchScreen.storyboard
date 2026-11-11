@@ -16,13 +16,51 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
-                            </imageView>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="n8C-gA-Rd7" userLabel="Maltto Logo">
+                                <rect key="frame" x="88" y="381" width="214" height="82"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="M0B-Wd-Ho8" userLabel="Wordmark Background">
+                                        <rect key="frame" x="0.0" y="3" width="206" height="76"/>
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Maltto" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wcE-BW-Qi9">
+                                                <rect key="frame" x="13" y="10" width="180" height="56"/>
+                                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="46"/>
+                                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                            </label>
+                                        </subviews>
+                                        <color key="backgroundColor" red="0.3568627451" green="0.337254902" blue="0.8392156863" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <constraints>
+                                            <constraint firstItem="wcE-BW-Qi9" firstAttribute="leading" secondItem="M0B-Wd-Ho8" secondAttribute="leading" constant="13" id="1eT-TN-S8F"/>
+                                            <constraint firstAttribute="trailing" secondItem="wcE-BW-Qi9" secondAttribute="trailing" constant="13" id="Fdy-FS-ZGu"/>
+                                            <constraint firstItem="wcE-BW-Qi9" firstAttribute="centerY" secondItem="M0B-Wd-Ho8" secondAttribute="centerY" id="g6X-MA-LPi"/>
+                                        </constraints>
+                                    </view>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="w3N-hB-nL0" userLabel="Text Cursor">
+                                        <rect key="frame" x="202" y="0.0" width="12" height="82"/>
+                                        <color key="backgroundColor" red="0.1176470588" green="0.1176470588" blue="0.1176470588" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="12" id="I55-Ds-2ON"/>
+                                        </constraints>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstItem="M0B-Wd-Ho8" firstAttribute="leading" secondItem="n8C-gA-Rd7" secondAttribute="leading" id="2Xs-iL-Rkp"/>
+                                    <constraint firstItem="M0B-Wd-Ho8" firstAttribute="centerY" secondItem="n8C-gA-Rd7" secondAttribute="centerY" id="9SS-Fs-K1k"/>
+                                    <constraint firstAttribute="trailing" secondItem="w3N-hB-nL0" secondAttribute="trailing" id="BQa-yJ-Qlf"/>
+                                    <constraint firstItem="w3N-hB-nL0" firstAttribute="height" secondItem="n8C-gA-Rd7" secondAttribute="height" id="Eai-Nq-pae"/>
+                                    <constraint firstItem="w3N-hB-nL0" firstAttribute="leading" secondItem="M0B-Wd-Ho8" secondAttribute="trailing" constant="-4" id="RyH-Ul-AfI"/>
+                                    <constraint firstAttribute="height" constant="82" id="VKK-pO-O6f"/>
+                                    <constraint firstItem="M0B-Wd-Ho8" firstAttribute="height" constant="76" id="Y4q-hg-c1F"/>
+                                    <constraint firstAttribute="width" constant="214" id="hzB-Ph-7Jc"/>
+                                    <constraint firstItem="w3N-hB-nL0" firstAttribute="centerY" secondItem="n8C-gA-Rd7" secondAttribute="centerY" id="zFs-CH-ydV"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+                            <constraint firstItem="n8C-gA-Rd7" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
+                            <constraint firstItem="n8C-gA-Rd7" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -31,7 +69,4 @@
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
-    <resources>
-        <image name="LaunchImage" width="168" height="185"/>
-    </resources>
 </document>

@@ -29,7 +29,7 @@ TestFlight와 스토어 배포는 `release` 브랜치와 보호된 배포 workfl
 
 | 값 | 단일 원본 | 예시 |
 |---|---|---|
-| 앱 버전 | `pubspec.yaml`의 `version`에서 `+` 앞부분 | `1.0.0` |
+| 앱 버전 | `pubspec.yaml`의 `version`에서 `+` 앞부분 | `0.1.0` |
 | 로컬 빌드 번호 | `pubspec.yaml`의 `version`에서 `+` 뒷부분 | `1` |
 | Xcode Cloud 빌드 번호 | Xcode Cloud의 `CI_BUILD_NUMBER` | `42` |
 
@@ -64,7 +64,7 @@ release → main: 테스트 완료 뒤 정식 출시 후보 확정
 
 | 값 | 단일 원본 | 예시 |
 |---|---|---|
-| 앱 버전(`versionName`) | `pubspec.yaml`의 `version`에서 `+` 앞부분 | `1.0.0` |
+| 앱 버전(`versionName`) | `pubspec.yaml`의 `version`에서 `+` 앞부분 | `0.1.0` |
 | 로컬 빌드 번호 | `pubspec.yaml`의 `version`에서 `+` 뒷부분 | `1` |
 | Play 빌드 번호(`versionCode`) | `100000 + GITHUB_RUN_NUMBER × 10 + GITHUB_RUN_ATTEMPT` | `100421` |
 
