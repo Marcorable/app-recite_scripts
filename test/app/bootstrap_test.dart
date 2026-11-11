@@ -7,18 +7,24 @@ import 'package:maltto/src/app/bootstrap.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Firebase 초기화가 완료된 뒤 앱을 실행한다', () async {
-    final initialization = Completer<void>();
+  test('Firebase와 telemetry 초기화가 완료된 뒤 앱을 실행한다', () async {
+    final firebaseInitialization = Completer<void>();
+    final telemetryInitialization = Completer<void>();
     Widget? startedApp;
 
     final bootstrapFuture = bootstrap(
-      initializeFirebase: () => initialization.future,
+      initializeFirebase: () => firebaseInitialization.future,
+      initializeTelemetry: () => telemetryInitialization.future,
       runApplication: (app) => startedApp = app,
     );
 
     expect(startedApp, isNull);
 
-    initialization.complete();
+    firebaseInitialization.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(startedApp, isNull);
+
+    telemetryInitialization.complete();
     await bootstrapFuture;
 
     expect(startedApp, isNotNull);
