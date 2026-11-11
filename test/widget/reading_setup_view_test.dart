@@ -299,6 +299,43 @@ void main() {
     expect(find.byKey(const Key('reading-current-word')), findsNothing);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   });
+
+  for (final scenario in [
+    (name: 'default', scale: 1.0),
+    (name: 'large-text', scale: 2.0),
+  ]) {
+    testWidgets('낭독 시작 설정 ${scenario.name} 골든', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.scale;
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      final repository = _ReadingRepository();
+      addTearDown(repository.dispose);
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          debugShowCheckedModeBanner: false,
+          home: ReadingSetupView(
+            viewModel: ReadingSetupViewModel(
+              script: _script,
+              repository: repository,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await expectLater(
+        find.byType(CupertinoApp),
+        matchesGoldenFile('goldens/reading-setup-${scenario.name}.png'),
+      );
+    });
+  }
 }
 
 Widget _buildApp(
