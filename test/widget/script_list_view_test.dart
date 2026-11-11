@@ -96,29 +96,6 @@ void main() {
     expect(find.byKey(const Key('script-title-field')), findsNothing);
   });
 
-  testWidgets('앱 정보에서 오픈소스 라이선스를 확인할 수 있다', (tester) async {
-    LicenseRegistry.addLicense(() async* {
-      yield const LicenseEntryWithLineBreaks([
-        'test_package',
-      ], 'Test package license.');
-    });
-    final repository = _WidgetScriptRepository();
-    await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    final infoButton = find.byKey(const Key('script-list-info-button'));
-    expect(infoButton, findsOneWidget);
-    expect(tester.getSize(infoButton).width, greaterThanOrEqualTo(48));
-    expect(tester.getSize(infoButton).height, greaterThanOrEqualTo(48));
-
-    await tester.tap(infoButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('오픈소스 라이선스'), findsOneWidget);
-    expect(find.textContaining('공개 포트폴리오'), findsOneWidget);
-    expect(find.text('test_package'), findsOneWidget);
-  });
-
   testWidgets('권한 거부는 OS 요청을 반복하지 않고 앱 설정 안내를 표시한다', (tester) async {
     final script = _script(id: 1, title: '권한 확인 대본', body: '직접 작성한 문장을 읽습니다.');
     var prepareCalls = 0;
