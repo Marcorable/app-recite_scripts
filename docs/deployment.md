@@ -6,10 +6,10 @@ Pull Request와 `develop` CI는 배포 자격 증명을 사용하지 않는다.
 
 - `flutter analyze`, 순수 Dart 테스트, Flutter 테스트
 - Android Debug APK 빌드
-- iOS Simulator Debug 앱 빌드(`--no-codesign`)
 - 커밋 금지 파일, 대표적인 시크릿 패턴, 제품 경로의 제3자 콘텐츠 표지 검사
 
-이 단계는 같은 커밋이 양 플랫폼에서 컴파일되고 테스트되는지 확인한다. 시뮬레이터 앱은 서명이 필요 없고 실제 기기에 배포하지 않는다.
+GitHub Actions는 공통 Flutter 검사와 Android CI/CD를 담당한다. iOS 빌드, 테스트,
+Archive와 TestFlight 배포는 Xcode Cloud에서 처리해 macOS 러너의 중복 실행을 피한다.
 
 ## 실제 배포
 
@@ -37,7 +37,10 @@ TestFlight와 스토어 배포는 `release` 브랜치와 보호된 배포 workfl
 
 사용자에게 보이는 앱 버전을 올릴 때만 `pubspec.yaml`의 `version`을 변경한다. Xcode Cloud의 빌드 번호를 소스에 커밋하거나 수동으로 증가시키지 않는다.
 
-Xcode Cloud 워크플로의 시작 조건은 `release` 브랜치 변경으로 제한한다. 워크플로에는 Archive 액션과 TestFlight 내부 테스트 배포 후처리를 설정한다. `develop` 병합은 GitHub Actions CI만 실행하며 App Store Connect 빌드 업로드를 시작하지 않는다.
+Xcode Cloud의 브랜치별 시작 조건은 Xcode Cloud 워크플로 설정에서 관리한다.
+워크플로에는 iOS 빌드와 테스트를 포함하고, 배포 대상 브랜치에는 Archive 액션과
+TestFlight 내부 테스트 배포 후처리를 설정한다. GitHub Actions에서는 iOS 빌드와
+배포를 중복 실행하지 않는다.
 
 ## Android CI/CD
 

@@ -132,35 +132,3 @@ jobs:
         run: |
           rm -f android/key.properties
           rm -f "${RUNNER_TEMP}/upload-keystore.jks"
-
-  ios-debug:
-    name: iOS Simulator Debug build
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
-      - run: flutter build ios --simulator --debug --no-codesign
-      - name: Run iOS app unit tests
-        run: |
-          device_id="$(
-            xcodebuild \
-              -workspace ios/Runner.xcworkspace \
-              -scheme Runner \
-              -showdestinations 2>/dev/null \
-              | sed -nE '/platform:iOS Simulator.*name:iPhone/ {s/.*id:([^,}]+).*/\1/p; q;}' \
-              | xargs
-          )"
-          if [[ -z "${device_id}" ]]; then
-            echo "::error::No available iPhone Simulator was found"
-            exit 1
-          fi
-          xcodebuild test \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -destination "platform=iOS Simulator,id=${device_id}" \
-            CODE_SIGNING_ALLOWED=NO
