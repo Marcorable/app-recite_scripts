@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:maltto/src/features/about/presentation/open_source_licenses_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
@@ -49,6 +50,10 @@ final class _ScriptListViewState extends State<ScriptListView> {
       ),
     );
   }
+
+  Future<void> _openLicenses() => Navigator.of(context).push<void>(
+    CupertinoPageRoute<void>(builder: (_) => const OpenSourceLicensesView()),
+  );
 
   Future<void> _openReadingSetup(Script script) async {
     if (_isOpeningReadingFlow) return;
@@ -198,6 +203,12 @@ final class _ScriptListViewState extends State<ScriptListView> {
 
   @override
   Widget build(BuildContext context) {
+    final infoButton = ScriptNavigationButton(
+      key: const Key('script-list-info-button'),
+      semanticLabel: '앱 정보 및 오픈소스 라이선스',
+      onPressed: _openLicenses,
+      child: const Icon(CupertinoIcons.info),
+    );
     final addButton = ScriptNavigationButton(
       key: const Key('script-list-add-button'),
       semanticLabel: '새 대본 추가',
@@ -256,7 +267,10 @@ final class _ScriptListViewState extends State<ScriptListView> {
             },
           ),
           Positioned.fill(
-            child: ScriptNavigationActionOverlay(trailing: addButton),
+            child: ScriptNavigationActionOverlay(
+              leading: infoButton,
+              trailing: addButton,
+            ),
           ),
         ],
       ),

@@ -72,8 +72,13 @@ final class ScriptNavigationButton extends StatelessWidget {
 }
 
 final class ScriptNavigationActionOverlay extends StatelessWidget {
-  const ScriptNavigationActionOverlay({required this.trailing, super.key});
+  const ScriptNavigationActionOverlay({
+    this.leading,
+    required this.trailing,
+    super.key,
+  });
 
+  final Widget? leading;
   final Widget trailing;
 
   @override
@@ -81,10 +86,12 @@ final class ScriptNavigationActionOverlay extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Align(
-        alignment: AlignmentDirectional.topEnd,
+        alignment: AlignmentDirectional.topCenter,
         child: Padding(
-          padding: const EdgeInsetsDirectional.only(end: AppSpacing.large),
-          child: trailing,
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.large,
+          ),
+          child: Row(children: [?leading, const Spacer(), trailing]),
         ),
       ),
     );
