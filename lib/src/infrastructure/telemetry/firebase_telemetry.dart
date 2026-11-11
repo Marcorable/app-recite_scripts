@@ -64,14 +64,24 @@ final class FirebaseCrashTelemetry implements CrashTelemetry {
 
   @override
   void recordFlutterFatalError(FlutterErrorDetails details) {
-    unawaited(
-      _crashlytics.recordError(
+    unawaited(_recordFlutterFatalError(details));
+  }
+
+  Future<void> _recordFlutterFatalError(FlutterErrorDetails details) async {
+    try {
+      await _crashlytics.recordError(
         StateError('flutter_fatal_error'),
         details.stack ?? StackTrace.current,
         reason: details.exception.runtimeType.toString(),
         fatal: true,
-      ),
-    );
+      );
+    } catch (error, stackTrace) {
+      _debugTelemetryFailure(
+        'Crashlytics Flutter error recording',
+        error,
+        stackTrace,
+      );
+    }
   }
 
   @override
@@ -93,19 +103,97 @@ Future<void> initializeFirebaseTelemetry({
   final analyticsTelemetry = analytics ?? FirebaseAnalyticsTelemetry();
   final crashReporter = crashTelemetry ?? FirebaseCrashTelemetry();
 
-  await analyticsTelemetry.setCollectionEnabled(true);
-  await crashReporter.setCollectionEnabled(true);
+  final analyticsReady = await _enableTelemetryCollection(
+    'Analytics collection setup',
+    () => analyticsTelemetry.setCollectionEnabled(true),
+  );
+  final crashlyticsReady = await _enableTelemetryCollection(
+    'Crashlytics collection setup',
+    () => crashReporter.setCollectionEnabled(true),
+  );
 
-  FlutterError.onError = crashReporter.recordFlutterFatalError;
-  PlatformDispatcher.instance.onError = (error, stackTrace) {
-    unawaited(crashReporter.recordFatalError(error, stackTrace));
-    return true;
-  };
+  if (crashlyticsReady) {
+    FlutterError.onError = (details) {
+      _debugTelemetryFailure(
+        'Flutter fatal error',
+        details.exception,
+        details.stack ?? StackTrace.current,
+      );
+      crashReporter.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stackTrace) {
+      _debugTelemetryFailure('Unhandled async error', error, stackTrace);
+      unawaited(_recordFatalErrorSafely(crashReporter, error, stackTrace));
+      return true;
+    };
+  }
 
   if (!kDebugMode || !debugVerification) {
     return;
   }
 
-  await analyticsTelemetry.logDebugVerification();
-  await crashReporter.recordDebugVerification();
+  if (analyticsReady) {
+    await _runTelemetryOperation(
+      'Analytics debug verification',
+      analyticsTelemetry.logDebugVerification,
+    );
+  }
+  if (crashlyticsReady) {
+    await _runTelemetryOperation(
+      'Crashlytics debug verification',
+      crashReporter.recordDebugVerification,
+    );
+  }
+}
+
+Future<bool> _enableTelemetryCollection(
+  String operation,
+  Future<void> Function() enable,
+) async {
+  try {
+    await enable();
+    return true;
+  } catch (error, stackTrace) {
+    _debugTelemetryFailure(operation, error, stackTrace);
+    return false;
+  }
+}
+
+Future<void> _runTelemetryOperation(
+  String operation,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+  } catch (error, stackTrace) {
+    _debugTelemetryFailure(operation, error, stackTrace);
+  }
+}
+
+Future<void> _recordFatalErrorSafely(
+  CrashTelemetry crashReporter,
+  Object error,
+  StackTrace stackTrace,
+) async {
+  try {
+    await crashReporter.recordFatalError(error, stackTrace);
+  } catch (recordingError, recordingStackTrace) {
+    _debugTelemetryFailure(
+      'Crashlytics async error recording',
+      recordingError,
+      recordingStackTrace,
+    );
+  }
+}
+
+void _debugTelemetryFailure(
+  String operation,
+  Object error,
+  StackTrace stackTrace,
+) {
+  if (!kDebugMode) {
+    return;
+  }
+  debugPrint('$operation failed (${error.runtimeType}).');
+  debugPrintStack(stackTrace: stackTrace);
 }

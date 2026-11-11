@@ -18,6 +18,7 @@ export PATH="${FLUTTER_INSTALL_DIR}/bin:${PATH}"
 flutter config --no-analytics
 flutter precache --ios
 flutter pub get
+dart pub global activate flutterfire_cli 1.5.0
 
 readonly WORKSPACE_PACKAGE_RESOLVED="ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 readonly PROJECT_SWIFTPM_DIR="ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"

@@ -41,6 +41,14 @@ xcrun simctl launch --terminate-running-process <simulator-id> \
 
 Crashlytics non-fatal 업로드는 세션 처리 뒤 전송될 수 있으므로 앱을 종료하고 다시 실행한 뒤 Firebase Console도 확인한다.
 
+## iOS 기기 및 Archive
+
+Crashlytics dSYM 업로드 단계는 FlutterFire CLI를 사용한다. 로컬에서 iOS 기기 빌드나 Archive를 만들기 전에 다음 버전을 설치한다. Xcode Cloud에서는 post-clone 스크립트가 같은 버전을 설치한다.
+
+```sh
+dart pub global activate flutterfire_cli 1.5.0
+```
+
 ## 기대 결과
 
 - Analytics DebugView에 `debug_verification`이 표시된다.
