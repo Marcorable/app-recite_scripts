@@ -18,6 +18,18 @@ export PATH="${FLUTTER_INSTALL_DIR}/bin:${PATH}"
 flutter config --no-analytics
 flutter precache --ios
 flutter pub get
+dart pub global activate flutterfire_cli 1.5.0
+
+readonly WORKSPACE_PACKAGE_RESOLVED="ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+readonly PROJECT_SWIFTPM_DIR="ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
+
+if [ ! -f "${WORKSPACE_PACKAGE_RESOLVED}" ]; then
+  echo "Missing ${WORKSPACE_PACKAGE_RESOLVED}" >&2
+  exit 1
+fi
+
+mkdir -p "${PROJECT_SWIFTPM_DIR}"
+cp "${WORKSPACE_PACKAGE_RESOLVED}" "${PROJECT_SWIFTPM_DIR}/Package.resolved"
 
 set -- --release --no-codesign --config-only
 if [ -n "${CI_BUILD_NUMBER:-}" ]; then

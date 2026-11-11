@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - develop
+      - release
 
 permissions:
   contents: read
@@ -17,7 +18,7 @@ jobs:
     name: Policy, analyze, and test
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -36,7 +37,7 @@ jobs:
     name: Android Debug build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
@@ -44,16 +45,90 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
+      - name: Run Android app unit tests
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest
 
-  ios-debug:
-    name: iOS Simulator Debug build
-    runs-on: macos-26
+  android-internal:
+    name: Google Play Internal deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+    needs:
+      - policy-and-test
+      - android-debug
+    runs-on: ubuntu-24.04
+    environment: google-play-internal
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
-      - run: flutter build ios --simulator --debug --no-codesign
+          cache: false
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+      - name: Install Ruby dependencies
+        run: bundle install
+      - name: Validate deployment secrets
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          required=(
+            ANDROID_UPLOAD_KEYSTORE_BASE64
+            ANDROID_UPLOAD_STORE_PASSWORD
+            ANDROID_UPLOAD_KEY_ALIAS
+            ANDROID_UPLOAD_KEY_PASSWORD
+            GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Required google-play-internal secret is missing: ${name}"
+              exit 1
+            fi
+          done
+      - name: Configure Android upload signing
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          keystore_path="${RUNNER_TEMP}/upload-keystore.jks"
+          printf '%s' "${ANDROID_UPLOAD_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
+          chmod 600 "${keystore_path}"
+          {
+            printf 'storeFile=%s\n' "${keystore_path}"
+            printf 'storePassword=%s\n' "${ANDROID_UPLOAD_STORE_PASSWORD}"
+            printf 'keyAlias=%s\n' "${ANDROID_UPLOAD_KEY_ALIAS}"
+            printf 'keyPassword=%s\n' "${ANDROID_UPLOAD_KEY_PASSWORD}"
+          } > android/key.properties
+          chmod 600 android/key.properties
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+      - name: Build signed Android App Bundle
+        id: build
+        run: |
+          build_number=$((100000 + GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT))
+          if ((build_number > 2100000000)); then
+            echo "::error::Android versionCode exceeds the Google Play limit"
+            exit 1
+          fi
+          flutter build appbundle --release --build-number="${build_number}"
+          echo "build_number=${build_number}" >> "${GITHUB_OUTPUT}"
+      - name: Upload to Google Play Internal
+        env:
+          ANDROID_AAB_PATH: ${{ github.workspace }}/build/app/outputs/bundle/release/app-release.aab
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android internal
+      - name: Remove signing files
+        if: always()
+        run: |
+          rm -f android/key.properties
+          rm -f "${RUNNER_TEMP}/upload-keystore.jks"

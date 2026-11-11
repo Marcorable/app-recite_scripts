@@ -1,7 +1,7 @@
 name: maltto
 description: "사용자가 입력한 대본을 반복해서 낭독하도록 돕는 앱"
 publish_to: 'none'
-version: 1.0.0+1
+version: 0.1.0+1
 
 environment:
   sdk: ^3.13.5
@@ -9,7 +9,10 @@ environment:
 dependencies:
   cupertino_icons: ^1.0.8
   drift: ^2.35.3
+  firebase_analytics: ^13.0.1
+  firebase_app_check: ^0.5.1
   firebase_core: ^5.1.0
+  firebase_crashlytics: ^6.0.1
   flutter:
     sdk: flutter
   path: ^1.9.1

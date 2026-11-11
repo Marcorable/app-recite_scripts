@@ -5,15 +5,19 @@ import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/scripts/data/script_repository.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 
-const storeScreenshotTitle = '발표 리허설';
+const storeScreenshotTitle = '말또 사용 가이드';
 const storeScreenshotBody =
-    '안녕하세요. 오늘은 작은 습관이 하루를 바꾸는 방법을 소개하겠습니다. '
-    '먼저 시작하기 쉬운 목표를 정합니다. 다음으로 매일 같은 시간에 천천히 읽습니다. '
-    '마지막으로 끝난 뒤 한 문장으로 느낌을 기록합니다.';
-const storeScreenshotSecondTitle = '아침 자기 확언';
+    '말또 사용법을 함께 익혀보겠습니다. 먼저 추가를 눌러 제목과 본문을 입력합니다. '
+    '저장한 대본을 선택하고 읽을 횟수를 정합니다. 낭독 시작을 누른 뒤 강조되는 어절을 '
+    '따라 천천히 읽습니다.';
+const storeScreenshotSecondTitle = '우리 가족을 위한 기도문';
 const storeScreenshotSecondBody =
-    '나는 오늘 해야 할 일을 차분히 시작합니다. 한 번에 한 가지에 집중하고, '
-    '작은 진전도 소중하게 받아들입니다.';
+    '오늘도 우리 가족이 서로를 아끼고 건강하게 지낼 수 있기를 바랍니다. '
+    '각자의 자리에서 평안한 하루를 보내고 따뜻한 마음을 나눌 수 있기를 바랍니다.';
+const storeScreenshotThirdTitle = '프로젝트 프레젠테이션 소개 문장';
+const storeScreenshotThirdBody =
+    '안녕하세요. 지금부터 프로젝트의 목표와 진행 상황을 소개하겠습니다. '
+    '먼저 해결하려는 문제를 살펴보고 주요 결과와 다음 계획을 차례로 말씀드리겠습니다.';
 
 final storeScreenshotScript = Script(
   id: 1,
@@ -31,9 +35,18 @@ final storeScreenshotSecondScript = Script(
   updatedAt: DateTime.utc(2026, 11, 4),
 );
 
+final storeScreenshotThirdScript = Script(
+  id: 3,
+  title: storeScreenshotThirdTitle,
+  body: storeScreenshotThirdBody,
+  createdAt: DateTime.utc(2026, 11, 3),
+  updatedAt: DateTime.utc(2026, 11, 3),
+);
+
 final storeScreenshotScripts = <Script>[
   storeScreenshotScript,
   storeScreenshotSecondScript,
+  storeScreenshotThirdScript,
 ];
 
 final class StoreScreenshotScriptRepository implements ScriptRepository {
@@ -106,7 +119,7 @@ final class StoreScreenshotReadingRepository
   }) async {
     _state = storeScreenshotReadingState(
       repetitions: repetitions,
-      currentWordIndex: 0,
+      currentWordIndex: 8,
     );
     return _state!;
   }
@@ -144,27 +157,7 @@ ReadingSessionState storeScreenshotReadingState({
   int repetitions = 3,
   int currentWordIndex = 8,
 }) {
-  const words = <String>[
-    '안녕하세요.',
-    '오늘은',
-    '작은',
-    '습관이',
-    '하루를',
-    '바꾸는',
-    '방법을',
-    '소개하겠습니다.',
-    '먼저',
-    '시작하기',
-    '쉬운',
-    '목표를',
-    '정합니다.',
-    '다음으로',
-    '매일',
-    '같은',
-    '시간에',
-    '천천히',
-    '읽습니다.',
-  ];
+  final words = storeScreenshotBody.split(' ');
   return ReadingSessionState(
     sessionId: 'store-screenshot-session',
     scriptTitle: storeScreenshotTitle,

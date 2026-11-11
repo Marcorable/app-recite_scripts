@@ -12,6 +12,15 @@ desc '생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.'
 lane :validate_store_assets do
   Dir.chdir(ROOT) do
     sh('tool/store_assets/validate.sh')
+    sh('python3 tool/store_assets/validate_promotional.py')
+  end
+end
+
+desc '원본 캡처에서 홍보용 스크린샷과 contact sheet를 재생성합니다.'
+lane :compose_store_promotional do
+  Dir.chdir(ROOT) do
+    sh('python3 tool/store_assets/compose_promotional.py')
+    sh('python3 tool/store_assets/validate_promotional.py')
   end
 end
 
@@ -25,6 +34,21 @@ platform :ios do
 end
 
 platform :android do
+  desc '서명된 AAB를 Google Play 내부 테스트 트랙에 배포합니다.'
+  lane :internal do
+    upload_to_play_store(
+      package_name: 'com.marcorable.maltto',
+      json_key_data: ENV.fetch('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
+      aab: ENV.fetch('ANDROID_AAB_PATH'),
+      track: 'internal',
+      release_status: 'completed',
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+    )
+  end
+
   desc 'Android phone 기본·큰 글씨 스크린샷을 생성합니다.'
   lane :screenshots do
     Dir.chdir(ROOT) do

@@ -29,6 +29,14 @@ iOS와 Android 스토어 스크린샷을 모두 생성하고 검증합니다.
 
 생성된 양 플랫폼 스토어 에셋 규격만 검증합니다.
 
+### compose_store_promotional
+
+```sh
+[bundle exec] fastlane compose_store_promotional
+```
+
+원본 캡처에서 홍보용 스크린샷과 contact sheet를 재생성합니다.
+
 ----
 
 
@@ -46,6 +54,14 @@ iPhone 6.9형과 iPad 13형 기본·큰 글씨 스크린샷을 생성합니다.
 
 
 ## Android
+
+### android internal
+
+```sh
+[bundle exec] fastlane android internal
+```
+
+서명된 AAB를 Google Play 내부 테스트 트랙에 배포합니다.
 
 ### android screenshots
 

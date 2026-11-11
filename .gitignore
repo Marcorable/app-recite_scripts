@@ -41,6 +41,7 @@ Packages/
 Package.resolved.lock
 **/*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 **/*.xcworkspace/xcshareddata/swiftpm/Package.resolved
+!ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # ── 도구 캐시 ──────────────────────────────────────────────────────
 .tuist/
@@ -51,6 +52,7 @@ Tuist/.build/
 vendor/bundle/
 Pods/
 .dart_tool/
+__pycache__/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
