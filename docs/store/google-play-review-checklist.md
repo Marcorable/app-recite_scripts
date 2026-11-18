@@ -61,7 +61,7 @@ Google은 2023-11-13 이후 만든 개인 개발자 계정에 12명 이상의 �
 - [ ] [Marco] release AAB의 package, version name/code, target API, 서명, 소스 커밋 대조
 - [x] [확인] `processReleaseMainManifest` 결과에 Firebase/Google SDK가 `INTERNET`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK`, `AD_ID`, Ad Services 관련 권한을 병합함
 - [ ] [Marco] 자동 사전 검토와 오류·경고 확인; 오류는 제출 전 모두 해소
-- [ ] [Marco] 이름 없는 초안 release의 생성 목적을 확인하고 유지·완성·폐기 중 하나를 별도 승인 후 선택
+- [ ] [Marco] 이름 없는 초안 release의 생성 목적과 새 production release 차단 여부 확인. 차단하면 production release 생성 전에 별도 승인 후 완성 또는 폐기하고, 차단하지 않으면 별도 승인 후 유지·완성·폐기 중 선택
 
 ## Marco의 Google Play Console 단계
 
