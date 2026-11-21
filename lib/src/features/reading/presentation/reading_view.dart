@@ -48,8 +48,7 @@ final class _ReadingViewState extends State<ReadingView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused ||
+    if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       unawaited(widget.viewModel.leave());
     }

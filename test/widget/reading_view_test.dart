@@ -234,6 +234,35 @@ void main() {
     expect(repository.state?.status, ReadingSessionStatus.exited);
   });
 
+  testWidgets('스크린샷의 일시적인 inactive 상태에서는 낭독을 유지한다', (tester) async {
+    final repository = _ReadingRepository(_state(currentWordIndex: 2));
+    await _pumpView(tester, repository);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(repository.leaveCallCount, 0);
+    expect(repository.state?.status, ReadingSessionStatus.running);
+    expect(find.text('낭독 완료'), findsNothing);
+    expect(find.text('낭독 종료'), findsNothing);
+  });
+
+  testWidgets('앱이 paused 상태로 전환되면 낭독을 종료한다', (tester) async {
+    final repository = _ReadingRepository(_state(currentWordIndex: 2));
+    await _pumpView(tester, repository);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+
+    expect(repository.leaveCallCount, 1);
+    expect(repository.state?.status, ReadingSessionStatus.exited);
+    expect(find.text('낭독 완료'), findsNothing);
+  });
+
   testWidgets('복구 불가 STT 오류는 원인을 한 번만 알리고 목록 복귀를 제공한다', (tester) async {
     final repository = _ReadingRepository(
       _state(
