@@ -107,6 +107,15 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
   void _handleSttEvent(SttEvent event) {
     final reducer = _reducer;
     if (reducer == null) return;
+    if (event.kind == SttEventKind.ready) {
+      final transition = reducer.markRecognitionReady(
+        sessionId: event.sessionId,
+        generation: event.generation,
+        sequence: event.sequence,
+      );
+      if (transition != ReadingSessionTransition.ignored) _emit();
+      return;
+    }
     if (event.kind == SttEventKind.ended ||
         (event.kind == SttEventKind.failure && event.retryable == true)) {
       _restartRecognition(reducer, event);

@@ -31,6 +31,29 @@ void main() {
     await sttService.close();
   });
 
+  test('네이티브 ready 이벤트 이후에만 듣는 중 상태를 노출한다', () async {
+    await repository.start(script: _script, repetitions: 1);
+
+    expect(
+      repository.state?.recognitionStatus,
+      ReadingRecognitionStatus.preparing,
+    );
+
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 1,
+        kind: SttEventKind.ready,
+      ),
+    );
+
+    expect(
+      repository.state?.recognitionStatus,
+      ReadingRecognitionStatus.listening,
+    );
+  });
+
   test('최종 완료는 STT 작업, 구독, timer를 정확히 한 번 정리한다', () async {
     await repository.start(script: _script, repetitions: 1);
     now = now.add(const Duration(seconds: 3));

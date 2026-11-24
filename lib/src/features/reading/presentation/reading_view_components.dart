@@ -1,6 +1,7 @@
 part of 'reading_view.dart';
 
 const double _moveBackSurfaceSize = 68;
+const double _recognitionIconSize = 18;
 
 final class _RunningSession extends StatelessWidget {
   const _RunningSession({
@@ -45,6 +46,10 @@ final class _ReadingStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showsRecognition = state.status == ReadingSessionStatus.running;
+    final isListening =
+        state.recognitionStatus == ReadingRecognitionStatus.listening;
+    final recognitionText = isListening ? '듣는 중' : '마이크 준비 중';
     final repetitionText =
         '${state.currentRepetition}/${state.totalRepetitions}회';
     final elapsedText = _formatElapsed(state.elapsed);
@@ -76,6 +81,36 @@ final class _ReadingStatus extends StatelessWidget {
         style: elapsedStyle,
       ),
     );
+    final recognitionStatus = Semantics(
+      label: '마이크 상태, $recognitionText',
+      liveRegion: true,
+      excludeSemantics: true,
+      child: Row(
+        key: const Key('reading-recognition-status'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isListening ? CupertinoIcons.mic_fill : CupertinoIcons.mic,
+            size: _recognitionIconSize,
+            color: isListening
+                ? AppColors.brand
+                : CupertinoColors.secondaryLabel,
+          ),
+          const SizedBox(width: AppSpacing.small),
+          Text(recognitionText, style: statusStyle),
+        ],
+      ),
+    );
+    final progressStatus = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (state.showsRepetition) ...[
+          repetitionStatus,
+          const SizedBox(width: AppSpacing.medium),
+        ],
+        elapsedStatus,
+      ],
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.large,
@@ -89,12 +124,6 @@ final class _ReadingStatus extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 52),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              if (!state.showsRepetition) {
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: elapsedStatus,
-                );
-              }
               final textScaler = MediaQuery.textScalerOf(context);
               final direction = Directionality.of(context);
               double textWidth(String text, TextStyle style) {
@@ -110,18 +139,36 @@ final class _ReadingStatus extends StatelessWidget {
               }
 
               final requiredWidth =
-                  textWidth(repetitionText, statusStyle) +
+                  (showsRecognition
+                      ? _recognitionIconSize +
+                            AppSpacing.small +
+                            textWidth(recognitionText, statusStyle) +
+                            AppSpacing.medium
+                      : 0) +
+                  (state.showsRepetition
+                      ? textWidth(repetitionText, statusStyle) +
+                            AppSpacing.medium
+                      : 0) +
                   textWidth(elapsedText, elapsedStyle) +
-                  AppSpacing.medium;
+                  AppSpacing.small;
               if (requiredWidth > constraints.maxWidth) {
                 return Column(
                   key: const Key('reading-status-stacked'),
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: repetitionStatus,
-                    ),
+                    if (showsRecognition)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: recognitionStatus,
+                      ),
+                    if (state.showsRepetition) ...[
+                      if (showsRecognition)
+                        const SizedBox(height: AppSpacing.small),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: repetitionStatus,
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.small),
                     Align(
                       alignment: Alignment.centerRight,
@@ -131,7 +178,11 @@ final class _ReadingStatus extends StatelessWidget {
                 );
               }
               return Row(
-                children: [repetitionStatus, const Spacer(), elapsedStatus],
+                children: [
+                  if (showsRecognition) recognitionStatus,
+                  const Spacer(),
+                  progressStatus,
+                ],
               );
             },
           ),

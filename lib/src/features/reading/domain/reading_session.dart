@@ -1,5 +1,7 @@
 enum ReadingSessionStatus { running, awaitingNextRepetition, completed, exited }
 
+enum ReadingRecognitionStatus { preparing, listening }
+
 enum ReadingSessionFailure {
   permissionDenied,
   modelUnavailable,
@@ -22,6 +24,7 @@ final class ReadingSessionState {
     required this.totalWords,
     required this.elapsed,
     required this.generation,
+    required this.recognitionStatus,
     this.failure,
   });
 
@@ -35,6 +38,7 @@ final class ReadingSessionState {
   final List<String> words;
   final int totalWords;
   final Duration elapsed;
+  final ReadingRecognitionStatus recognitionStatus;
   final ReadingSessionFailure? failure;
 
   /// 현재 STT 작업만 이 값을 사용한다. 회차 경계와 종료에서 즉시 증가한다.
@@ -49,6 +53,7 @@ enum ReadingSessionTransition {
   movedBack,
   nextRepetitionStarted,
   recognitionRestarted,
+  recognitionReady,
   repetitionCompleted,
   sessionCompleted,
   exited,

@@ -36,6 +36,8 @@ final class ReadingSessionReducer {
   int _generation = 1;
   int _lastSequence = -1;
   Duration _elapsed = Duration.zero;
+  ReadingRecognitionStatus _recognitionStatus =
+      ReadingRecognitionStatus.preparing;
   ReadingSessionFailure? _failure;
 
   ReadingSessionState get state {
@@ -57,6 +59,7 @@ final class ReadingSessionReducer {
       totalWords: tokens.length,
       elapsed: _elapsed,
       generation: _generation,
+      recognitionStatus: _recognitionStatus,
       failure: _failure,
     );
   }
@@ -102,7 +105,25 @@ final class ReadingSessionReducer {
       return ReadingSessionTransition.ignored;
     }
     _status = ReadingSessionStatus.running;
+    _recognitionStatus = ReadingRecognitionStatus.preparing;
     return ReadingSessionTransition.nextRepetitionStarted;
+  }
+
+  ReadingSessionTransition markRecognitionReady({
+    required String sessionId,
+    required int generation,
+    required int sequence,
+  }) {
+    if (_status != ReadingSessionStatus.running ||
+        sessionId != _sessionId ||
+        generation != _generation ||
+        sequence <= _lastSequence ||
+        _recognitionStatus == ReadingRecognitionStatus.listening) {
+      return ReadingSessionTransition.ignored;
+    }
+    _lastSequence = sequence;
+    _recognitionStatus = ReadingRecognitionStatus.listening;
+    return ReadingSessionTransition.recognitionReady;
   }
 
   ReadingSessionTransition updateElapsed(Duration elapsed) {
@@ -122,6 +143,7 @@ final class ReadingSessionReducer {
 
     _generation++;
     _lastSequence = -1;
+    _recognitionStatus = ReadingRecognitionStatus.preparing;
     _progress.beginNewTranscriptSegment();
     return ReadingSessionTransition.movedBack;
   }
@@ -139,6 +161,7 @@ final class ReadingSessionReducer {
     }
     _generation++;
     _lastSequence = -1;
+    _recognitionStatus = ReadingRecognitionStatus.preparing;
     _progress.beginNewTranscriptSegment();
     return ReadingSessionTransition.recognitionRestarted;
   }

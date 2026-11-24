@@ -47,6 +47,8 @@ void main() {
     await _pumpView(tester, repository);
 
     expect(find.text('2/3회'), findsOneWidget);
+    expect(find.text('듣는 중'), findsOneWidget);
+    expect(find.bySemanticsLabel('마이크 상태, 듣는 중'), findsOneWidget);
     expect(find.bySemanticsLabel('현재 2회차, 전체 3회, 1회 남음'), findsOneWidget);
     expect(find.text('01:02:03'), findsOneWidget);
     expect(find.bySemanticsLabel('경과 시간, 1시간 2분 3초'), findsOneWidget);
@@ -76,6 +78,36 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('reading-repetition-status')), findsNothing);
     expect(find.text('00:04'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('실제 인식 준비 상태에 따라 마이크 상태 문구와 아이콘을 구분한다', (tester) async {
+    final repository = _ReadingRepository(
+      _state(recognitionStatus: ReadingRecognitionStatus.preparing),
+    );
+    final semantics = tester.ensureSemantics();
+    await _pumpView(tester, repository);
+
+    expect(find.text('마이크 준비 중'), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.mic), findsOneWidget);
+    expect(find.bySemanticsLabel('마이크 상태, 마이크 준비 중'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('마이크 상태, 마이크 준비 중'))
+          .getSemanticsData()
+          .flagsCollection
+          .isLiveRegion,
+      isTrue,
+    );
+
+    repository.emit(
+      _state(recognitionStatus: ReadingRecognitionStatus.listening),
+    );
+    await tester.pump();
+
+    expect(find.text('듣는 중'), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.mic_fill), findsOneWidget);
+    expect(find.bySemanticsLabel('마이크 상태, 듣는 중'), findsOneWidget);
     semantics.dispose();
   });
 
@@ -319,6 +351,7 @@ void main() {
 
     expect(find.text('1회 낭독 완료'), findsOneWidget);
     expect(find.text('2/2회를 이어서 낭독할까요?'), findsOneWidget);
+    expect(find.text('듣는 중'), findsNothing);
     expect(repository.continueCallCount, 0);
 
     await tester.tap(
@@ -544,6 +577,8 @@ ReadingSessionState _state({
   Object? currentWordIndex = 0,
   List<String> words = const ['오늘', '읽을', '문장을', '천천히', '말합니다'],
   Duration elapsed = Duration.zero,
+  ReadingRecognitionStatus recognitionStatus =
+      ReadingRecognitionStatus.listening,
   int generation = 1,
   ReadingSessionFailure? failure,
 }) {
@@ -560,6 +595,7 @@ ReadingSessionState _state({
     totalWords: words.length,
     elapsed: elapsed,
     generation: generation,
+    recognitionStatus: recognitionStatus,
     failure: failure,
   );
 }
@@ -667,5 +703,6 @@ ReadingSessionState _copyState(
   totalWords: state.totalWords,
   elapsed: state.elapsed,
   generation: generation ?? state.generation,
+  recognitionStatus: state.recognitionStatus,
   failure: failure ?? state.failure,
 );
