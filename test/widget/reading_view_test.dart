@@ -493,12 +493,17 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final repository = _ReadingRepository(
-      _state(totalRepetitions: 10, elapsed: const Duration(minutes: 2)),
+      _state(
+        totalRepetitions: 10,
+        elapsed: const Duration(minutes: 2),
+        recognitionStatus: ReadingRecognitionStatus.preparing,
+      ),
     );
     await _pumpView(tester, repository);
 
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('reading-status-stacked')), findsOneWidget);
+    expect(find.text('마이크 준비 중'), findsOneWidget);
   });
 
   testWidgets('대본 스크롤 하단은 떠 있는 뒤로 액션만큼 여백을 확보한다', (tester) async {

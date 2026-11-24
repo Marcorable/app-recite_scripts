@@ -97,7 +97,7 @@ final class _ReadingStatus extends StatelessWidget {
                 : CupertinoColors.secondaryLabel,
           ),
           const SizedBox(width: AppSpacing.small),
-          Text(recognitionText, style: statusStyle),
+          Flexible(child: Text(recognitionText, style: statusStyle)),
         ],
       ),
     );

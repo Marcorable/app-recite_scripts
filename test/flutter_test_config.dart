@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _goldenDiffTolerance = 0.015;
+// Cupertino의 시스템 글꼴은 macOS와 Linux CI에서 안티앨리어싱 차이가 난다.
+// 구조적 회귀는 잡되 OS별 픽셀 차이는 허용한다.
+const _goldenDiffTolerance = 0.02;
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   final comparator = goldenFileComparator;
