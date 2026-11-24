@@ -15,6 +15,35 @@ void main() {
       );
 
   group('ReadingSessionReducer', () {
+    test('실제 STT ready 이벤트에서만 듣는 중 상태로 전환한다', () {
+      final reducer = createReducer();
+
+      expect(
+        reducer.state.recognitionStatus,
+        ReadingRecognitionStatus.preparing,
+      );
+      expect(
+        reducer.markRecognitionReady(
+          sessionId: 'session-1',
+          generation: 1,
+          sequence: 1,
+        ),
+        ReadingSessionTransition.recognitionReady,
+      );
+      expect(
+        reducer.state.recognitionStatus,
+        ReadingRecognitionStatus.listening,
+      );
+      expect(
+        reducer.markRecognitionReady(
+          sessionId: 'session-1',
+          generation: 1,
+          sequence: 2,
+        ),
+        ReadingSessionTransition.ignored,
+      );
+    });
+
     test('1회 마지막 어절에서 정확히 한 번 완료한다', () {
       final reducer = createReducer();
 
@@ -72,6 +101,10 @@ void main() {
         ReadingSessionTransition.nextRepetitionStarted,
       );
       expect(reducer.state.status, ReadingSessionStatus.running);
+      expect(
+        reducer.state.recognitionStatus,
+        ReadingRecognitionStatus.preparing,
+      );
 
       final last = reducer.acceptTranscript(
         sessionId: 'session-1',

@@ -434,6 +434,7 @@ final class _ReadingRepository implements ReadingSessionRepository {
       totalWords: 5,
       elapsed: Duration.zero,
       generation: 1,
+      recognitionStatus: ReadingRecognitionStatus.listening,
     );
     return _state!;
   }
@@ -458,6 +459,7 @@ final class _ReadingRepository implements ReadingSessionRepository {
       totalWords: current.totalWords,
       elapsed: current.elapsed,
       generation: current.generation + 1,
+      recognitionStatus: current.recognitionStatus,
     );
     _controller.add(_state!);
   }

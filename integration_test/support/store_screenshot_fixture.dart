@@ -170,5 +170,6 @@ ReadingSessionState storeScreenshotReadingState({
     totalWords: words.length,
     elapsed: const Duration(seconds: 38),
     generation: 1,
+    recognitionStatus: ReadingRecognitionStatus.listening,
   );
 }
