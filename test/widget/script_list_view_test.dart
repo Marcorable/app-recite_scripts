@@ -21,7 +21,7 @@ void main() {
     await tester.pumpWidget(_buildApp(repository));
     await tester.pump();
 
-    final context = tester.element(find.text('예시 대본으로 첫 낭독을 연습해 보세요.'));
+    final context = tester.element(find.text('저장된 대본이 없습니다.'));
     expect(CupertinoTheme.of(context).brightness, Brightness.light);
     expect(
       CupertinoTheme.of(context).scaffoldBackgroundColor,
@@ -35,11 +35,10 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CupertinoApp), findsOneWidget);
-    expect(find.text('예시 대본으로 첫 낭독을 연습해 보세요.'), findsOneWidget);
-    expect(find.text('예시 대본으로 연습'), findsOneWidget);
-    expect(find.text('내 대본 추가'), findsOneWidget);
+    expect(find.text('저장된 대본이 없습니다.'), findsOneWidget);
+    expect(find.text('대본 추가'), findsOneWidget);
     final emptyAddButton = find.ancestor(
-      of: find.text('내 대본 추가'),
+      of: find.text('대본 추가'),
       matching: find.byType(CupertinoButton),
     );
     expect(
@@ -51,7 +50,7 @@ void main() {
       greaterThanOrEqualTo(48),
     );
 
-    await tester.tap(find.text('내 대본 추가'));
+    await tester.tap(find.text('대본 추가'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('script-title-field')),
@@ -74,74 +73,8 @@ void main() {
     await tester.tap(find.text('삭제'));
     await tester.pumpAndSettle();
 
-    expect(find.text('예시 대본으로 첫 낭독을 연습해 보세요.'), findsOneWidget);
+    expect(find.text('저장된 대본이 없습니다.'), findsOneWidget);
     expect(repository.scripts, isEmpty);
-  });
-
-  testWidgets('예시 대본은 저장하지 않고 기존 낭독 설정 흐름으로 연다', (tester) async {
-    final repository = _WidgetScriptRepository();
-    Script? openedScript;
-    await tester.pumpWidget(
-      _buildAppWithReading(
-        repository,
-        prepareReading: () async =>
-            const SttPreparation(status: SttPreparationStatus.ready),
-        readingSetupBuilder: (script) {
-          openedScript = script;
-          return const SizedBox(key: Key('reading-setup-probe'));
-        },
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('tutorial-practice-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('reading-setup-probe')), findsOneWidget);
-    expect(openedScript?.id, -1);
-    expect(openedScript?.title, '첫 낭독 연습');
-    expect(
-      openedScript?.body.split('.').where((part) => part.trim().isNotEmpty),
-      hasLength(3),
-    );
-    expect(repository.scripts, isEmpty);
-  });
-
-  testWidgets('저장된 대본이 있으면 예시 연습을 표시하지 않는다', (tester) async {
-    final repository = _WidgetScriptRepository(
-      initialScripts: [
-        _script(id: 1, title: '내 연습 대본', body: '직접 작성한 문장을 읽습니다.'),
-      ],
-    );
-
-    await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('tutorial-practice-button')), findsNothing);
-    expect(find.text('내 연습 대본'), findsOneWidget);
-  });
-
-  testWidgets('좁은 화면과 큰 글씨에서도 빈 상태 행동을 조작할 수 있다', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320, 640));
-    tester.platformDispatcher.textScaleFactorTestValue = 3;
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-      tester.platformDispatcher.clearTextScaleFactorTestValue();
-    });
-
-    await tester.pumpWidget(_buildApp(_WidgetScriptRepository()));
-    await tester.pumpAndSettle();
-
-    expect(tester.takeException(), isNull);
-    for (final key in [
-      const Key('tutorial-practice-button'),
-      const Key('empty-state-add-button'),
-    ]) {
-      final button = find.byKey(key);
-      expect(button, findsOneWidget);
-      expect(tester.getSize(button).width, greaterThanOrEqualTo(48));
-      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
-    }
   });
 
   testWidgets('대본 추가는 full-screen modal route로 열리고 취소로 닫힌다', (tester) async {
@@ -320,7 +253,7 @@ void main() {
     final repository = _WidgetScriptRepository();
     await tester.pumpWidget(_buildApp(repository));
     await tester.pump();
-    await tester.tap(find.text('내 대본 추가'));
+    await tester.tap(find.text('대본 추가'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('script-title-field')), '   ');
@@ -338,7 +271,7 @@ void main() {
     final repository = _WidgetScriptRepository(failCreate: true);
     await tester.pumpWidget(_buildApp(repository));
     await tester.pump();
-    await tester.tap(find.text('내 대본 추가'));
+    await tester.tap(find.text('대본 추가'));
     await tester.pumpAndSettle();
 
     await tester.enterText(

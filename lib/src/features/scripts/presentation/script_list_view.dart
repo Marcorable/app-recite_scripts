@@ -3,7 +3,6 @@ import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
-import 'package:maltto/src/features/scripts/model/tutorial_script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_components.dart';
@@ -233,11 +232,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
                   else if (widget.viewModel.scripts.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
-                      child: ScriptEmptyState(
-                        onPractice: () =>
-                            _openReadingSetup(createTutorialScript()),
-                        onAdd: _openCreateView,
-                      ),
+                      child: ScriptEmptyState(onAdd: _openCreateView),
                     )
                   else
                     SliverPadding(

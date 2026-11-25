@@ -3,13 +3,8 @@ import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 
 final class ScriptEmptyState extends StatelessWidget {
-  const ScriptEmptyState({
-    required this.onPractice,
-    required this.onAdd,
-    super.key,
-  });
+  const ScriptEmptyState({required this.onAdd, super.key});
 
-  final VoidCallback onPractice;
   final VoidCallback onAdd;
 
   @override
@@ -23,23 +18,13 @@ final class ScriptEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('예시 대본으로 첫 낭독을 연습해 보세요.', textAlign: TextAlign.center),
+              const Text('저장된 대본이 없습니다.', textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.extraLarge),
               ConstrainedBox(
                 constraints: AppTargets.preferredConstraints,
                 child: CupertinoButton.filled(
-                  key: const Key('tutorial-practice-button'),
-                  onPressed: onPractice,
-                  child: const Text('예시 대본으로 연습'),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              ConstrainedBox(
-                constraints: AppTargets.preferredConstraints,
-                child: CupertinoButton(
-                  key: const Key('empty-state-add-button'),
                   onPressed: onAdd,
-                  child: const Text('내 대본 추가'),
+                  child: const Text('대본 추가'),
                 ),
               ),
             ],
