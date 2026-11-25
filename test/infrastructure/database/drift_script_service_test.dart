@@ -112,6 +112,9 @@ void main() {
     expect(initialRows, hasLength(1));
     expect(initialRows.single.title, tutorialScriptTitle);
     expect(initialRows.single.body, tutorialScriptBody);
+    expect(initialRows.single.body, contains('말한 위치'));
+    expect(initialRows.single.body, contains('한 어절 뒤로'));
+    expect(initialRows.single.body, contains('반복 횟수'));
 
     await fileService.delete(initialRows.single.id);
     await fileDatabase.close();
