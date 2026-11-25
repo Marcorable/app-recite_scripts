@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/infrastructure/database/app_database.dart';
 import 'package:maltto/src/infrastructure/database/drift_script_service.dart';
+import 'package:maltto/src/infrastructure/database/tutorial_script_seed.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +99,35 @@ void main() {
     );
   });
 
+  test('최초 설치에만 예시 대본을 저장하고 삭제 후 다시 만들지 않는다', () async {
+    await database.close();
+    final directory = await Directory.systemTemp.createTemp('maltto-seed-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/scripts.sqlite');
+
+    var fileDatabase = AppDatabase.openAt(file);
+    var fileService = DriftScriptService(fileDatabase);
+    final initialRows = await fileService.getAll();
+
+    expect(initialRows, hasLength(1));
+    expect(initialRows.single.title, tutorialScriptTitle);
+    expect(initialRows.single.body, tutorialScriptBody);
+    expect(initialRows.single.body, contains('말한 위치'));
+    expect(initialRows.single.body, contains('한 어절 뒤로'));
+    expect(initialRows.single.body, contains('반복 횟수'));
+
+    await fileService.delete(initialRows.single.id);
+    await fileDatabase.close();
+
+    fileDatabase = AppDatabase.openAt(file);
+    fileService = DriftScriptService(fileDatabase);
+    expect(await fileService.getAll(), isEmpty);
+    await fileDatabase.close();
+
+    database = AppDatabase(NativeDatabase.memory());
+    service = DriftScriptService(database, now: () => timestamp);
+  });
+
   test('파일 DB를 닫고 다시 열어도 긴 본문이 그대로 유지된다', () async {
     await database.close();
     final directory = await Directory.systemTemp.createTemp(
@@ -107,12 +137,12 @@ void main() {
     final file = File('${directory.path}/scripts.sqlite');
     final longBody = List.filled(5000, '직접 작성한 긴 문장을 차분하게 읽습니다. ').join();
 
-    var fileDatabase = AppDatabase.openAt(file);
+    var fileDatabase = AppDatabase.openAt(file, seedTutorialOnCreate: false);
     var fileService = DriftScriptService(fileDatabase, now: () => timestamp);
     await fileService.create(title: '긴 대본', body: longBody);
     await fileDatabase.close();
 
-    fileDatabase = AppDatabase.openAt(file);
+    fileDatabase = AppDatabase.openAt(file, seedTutorialOnCreate: false);
     fileService = DriftScriptService(fileDatabase);
     final reopenedRows = await fileService.getAll();
 
