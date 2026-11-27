@@ -65,7 +65,7 @@
 - **Project 필드**: `Status`(Backlog / Ready / In Progress / In Review / Done), `Phase`(0~6), `Model`(Claude / Codex / Marco), `Role`(Planner / Designer / Developer / QA / Marketer).
 - **브랜치 흐름**: `develop`은 통합·CI, `release`는 테스트 배포·CD, `main`은 정식 출시용이다. 독립 작업과 상위 작업 브랜치는 `develop`에서 따고 PR 베이스도 `develop`이다. 하위 이슈의 스택 PR만 아직 병합되지 않은 상위 작업 브랜치를 베이스로 삼는다. 검증된 `develop`을 `release`로 병합하면 테스트 스토어 배포를 실행한다.
 - **브랜치**: Issue 번호만 쓴다 — `51`. 하위 이슈가 생길 상위 이슈는 `<번호>/parent`, 하위 이슈는 `<상위>/<하위>`. 작업 종류는 브랜치가 아니라 PR 제목에 쓴다. worktree로 병렬 작업.
-- **PR**: 제목은 `[Category] 한글 제목` 형식으로 쓴다. Category는 `Feature` / `Fix` / `Documentation` / `Chore` / `Refactoring` / `Test` / `Style` 중에서 고른다. 본문에 `Closes #N`. 한 PR은 한 Issue. PR을 한꺼번에 여러 개 열지 않는다(CodeRabbit OSS rate limit).
+- **PR**: 제목은 `[Category] 한글 제목` 형식으로 쓴다. Category는 `Feature` / `Fix` / `Documentation` / `Chore` / `Refactoring` / `Test` / `Style` 중에서 고른다. 본문은 변경 요약과 `Closes #N`을 중심으로 간결하게 작성하며 검증 결과 섹션은 넣지 않는다. CodeRabbit이 `Summary by CodeRabbit`을 자동 추가하면 머지 전에 제거한다. 한 PR은 한 Issue. PR을 한꺼번에 여러 개 열지 않는다(CodeRabbit OSS rate limit).
 - **커밋 메시지**: marcorable-kit `commit` 스킬(`agent-common/marcorable-github/skills/commit/`) 형식을 따른다.
   - 제목: `[#N] type: 요약` — `#N`은 브랜치의 자기 이슈 번호 하나. `develop`·`main`처럼 번호 없는 브랜치에서는 prefix를 생략한다.
   - type: `feat` / `fix` / `refactor` / `modify` / `rename` / `docs` / `style` / `test` / `chore`.
@@ -119,13 +119,13 @@ PR 오픈 → Codex 자동 리뷰 (1차, P0/P1만)
 
 ## 8. 검증 루프 (원칙 2 상세)
 
-에이전트는 코드를 바꾸면 다음을 스스로 실행하고 결과를 PR에 적는다.
+에이전트는 코드를 바꾸면 다음을 스스로 실행하고 실제 결과를 Marco에게 보고한다. 검증 결과를 PR 본문에 반복해서 적지는 않는다.
 
 1. 포맷·정적 분석 (`dart format --output=none --set-exit-if-changed .`, `flutter analyze`)
 2. 유닛·위젯 테스트 (`flutter test`)
 3. Android 빌드·에뮬레이터 실행 + 해당 화면 스크린샷
 4. iOS 빌드·시뮬레이터 실행 + 해당 화면 스크린샷
-5. (UI 변경 시) 큰 글씨/확대 텍스트 화면을 양 플랫폼에서 확인한다. PR 본문에는 같은 화면의 변경 전·변경 후 스크린샷을 나란히 첨부하고, 스크린샷 파일은 레포에 커밋하지 않는다.
+5. (UI 변경 시) 큰 글씨/확대 텍스트 화면을 양 플랫폼에서 확인한다. 리뷰에 시각 자료가 필요한 경우에만 변경 전·변경 후 스크린샷을 첨부하고, 스크린샷 파일은 레포에 커밋하지 않는다.
 
 빌드·테스트 실패를 "환경 문제"로 넘기지 않는다. 못 풀면 Issue에 상황을 적고 `user`를 붙인다.
 
