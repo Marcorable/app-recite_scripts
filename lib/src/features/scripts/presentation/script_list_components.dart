@@ -80,6 +80,7 @@ final class ScriptListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final separatorHeight = 1 / MediaQuery.devicePixelRatioOf(context);
     return DecoratedBox(
+      key: ValueKey('script-list-tile-${script.id}'),
       decoration: const BoxDecoration(color: AppColors.canvas),
       child: Column(
         children: [
@@ -131,6 +132,7 @@ final class ScriptListTile extends StatelessWidget {
             ),
           ),
           Container(
+            key: ValueKey('script-list-divider-${script.id}'),
             height: separatorHeight,
             margin: const EdgeInsets.only(left: AppSpacing.large),
             color: AppColors.separator,

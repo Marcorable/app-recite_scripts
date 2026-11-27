@@ -520,6 +520,36 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('목록 전체를 우측 안전 영역 안에 표시한다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(right: 96);
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPadding();
+    });
+    final repository = _WidgetScriptRepository(
+      initialScripts: [
+        _script(id: 1, title: '안전 영역 확인', body: '직접 작성한 문장을 천천히 읽습니다.'),
+      ],
+    );
+
+    await tester.pumpWidget(_buildApp(repository));
+    await tester.pumpAndSettle();
+
+    final deleteButton = find.ancestor(
+      of: find.byIcon(CupertinoIcons.delete),
+      matching: find.byType(CupertinoButton),
+    );
+    final tile = find.byKey(const ValueKey('script-list-tile-1'));
+    final divider = find.byKey(const ValueKey('script-list-divider-1'));
+
+    expect(tester.getRect(tile).right, lessThanOrEqualTo(294));
+    expect(tester.getRect(divider).right, lessThanOrEqualTo(294));
+    expect(tester.getRect(deleteButton.first).right, lessThanOrEqualTo(294));
+  });
+
   for (final scenario in [
     (name: 'default', scale: 1.0),
     (name: 'large-text', scale: 2.0),

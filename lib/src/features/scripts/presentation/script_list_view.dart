@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
@@ -32,27 +34,84 @@ final class ScriptListView extends StatefulWidget {
 }
 
 final class _ScriptListViewState extends State<ScriptListView> {
+  static const _duoToolbarChannel = MethodChannel(
+    'com.marcorable.maltto/duo_toolbar',
+  );
+
   bool _isOpeningReadingFlow = false;
+  bool _usesNativeVerticalToolbar = false;
 
   @override
   void initState() {
     super.initState();
     widget.viewModel.load();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      _duoToolbarChannel.setMethodCallHandler(_handleDuoToolbarCall);
+      _loadDuoToolbarPlacement();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      _duoToolbarChannel.setMethodCallHandler(null);
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadDuoToolbarPlacement() async {
+    try {
+      final isVertical =
+          await _duoToolbarChannel.invokeMethod<bool>('isVerticalToolbar') ??
+          false;
+      if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
+    } on MissingPluginException {
+      // Older iOS hosts keep the Flutter navigation action.
+    }
+  }
+
+  Future<void> _handleDuoToolbarCall(MethodCall call) async {
+    switch (call.method) {
+      case 'openCreate':
+        await _openCreateView();
+      case 'verticalToolbarChanged':
+        final isVertical = call.arguments as bool? ?? false;
+        if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
+    }
+  }
+
+  Future<void> _setNativeAddVisible(bool visible) async {
+    if (!_usesNativeVerticalToolbar) return;
+    try {
+      await _duoToolbarChannel.invokeMethod<void>('setAddVisible', visible);
+    } on MissingPluginException {
+      // The Flutter action remains available when the native host is absent.
+    }
   }
 
   Future<void> _openCreateView() async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) =>
-            ScriptCreateView(viewModel: widget.createScriptViewModel()),
-      ),
-    );
+    await _setNativeAddVisible(false);
+    if (!mounted) {
+      await _setNativeAddVisible(true);
+      return;
+    }
+    try {
+      await Navigator.of(context).push<void>(
+        CupertinoPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) =>
+              ScriptCreateView(viewModel: widget.createScriptViewModel()),
+        ),
+      );
+    } finally {
+      await _setNativeAddVisible(true);
+    }
   }
 
   Future<void> _openReadingSetup(Script script) async {
     if (_isOpeningReadingFlow) return;
     _isOpeningReadingFlow = true;
+    await _setNativeAddVisible(false);
     try {
       SttPreparation preparation;
       try {
@@ -108,6 +167,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
       );
     } finally {
       _isOpeningReadingFlow = false;
+      await _setNativeAddVisible(true);
     }
   }
 
@@ -239,25 +299,31 @@ final class _ScriptListViewState extends State<ScriptListView> {
                       padding: const EdgeInsets.symmetric(
                         vertical: AppSpacing.large,
                       ),
-                      sliver: SliverList.builder(
-                        itemCount: widget.viewModel.scripts.length,
-                        itemBuilder: (context, index) {
-                          final script = widget.viewModel.scripts[index];
-                          return ScriptListTile(
-                            script: script,
-                            onSelected: () => _openReadingSetup(script),
-                            onDelete: () => _confirmDelete(script),
-                          );
-                        },
+                      sliver: SliverSafeArea(
+                        left: false,
+                        top: false,
+                        bottom: false,
+                        sliver: SliverList.builder(
+                          itemCount: widget.viewModel.scripts.length,
+                          itemBuilder: (context, index) {
+                            final script = widget.viewModel.scripts[index];
+                            return ScriptListTile(
+                              script: script,
+                              onSelected: () => _openReadingSetup(script),
+                              onDelete: () => _confirmDelete(script),
+                            );
+                          },
+                        ),
                       ),
                     ),
                 ],
               );
             },
           ),
-          Positioned.fill(
-            child: ScriptNavigationActionOverlay(trailing: addButton),
-          ),
+          if (!_usesNativeVerticalToolbar)
+            Positioned.fill(
+              child: ScriptNavigationActionOverlay(trailing: addButton),
+            ),
         ],
       ),
     );
