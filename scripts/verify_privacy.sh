@@ -44,16 +44,19 @@ fi
 # 사용자 입력이나 STT 전사문을 Firebase에 전달하는 호출을 금지한다. 허용되는
 # debug_verification 이벤트는 고정 문자열만 전송하며 사용자 필드를 갖지 않는다.
 # 호출명과 인자가 서로 다른 줄에 있어도 닫는 `);`까지 하나의 블록으로 검사한다.
-telemetry_scanner='while (/(?:logEvent|recordError|setUserId|setUserProperty|setCustomKey)\s*\((?:(?!\n\s*\);)[\s\S]){0,4000}?\b(?:script|transcript|text|body|audio)\b(?:(?!\n\s*\);)[\s\S])*?\n\s*\);/gi) { print "$ARGV:$&\n" }'
+telemetry_scanner='while (/(?:logEvent|recordError|setUserId|setUserProperty|setCustomKey)\s*\((?:(?!\s*\);)[\s\S]){0,4000}?\b(?:script|transcript|text|body|audio)\b(?:(?!\s*\);)[\s\S])*?\s*\);/gi) { print "$ARGV:$&\n" }'
 scanner_fixture="$(mktemp)"
 trap 'rm -f "$scanner_fixture"' EXIT
 printf '%s\n' \
     '_analytics.logEvent(' \
     "  name: 'read'," \
     "  parameters: {'body': script.body}," \
-    ');' >"$scanner_fixture"
-if ! perl -0 -ne "$telemetry_scanner" "$scanner_fixture" | grep -q .; then
-    fail "여러 줄 telemetry 회귀 검사기가 동작하지 않는다"
+    ');' \
+    "_analytics.logEvent(name: 'read', parameters: {'body': script.body});" \
+    >"$scanner_fixture"
+scanner_fixture_matches="$(perl -0 -ne "$telemetry_scanner" "$scanner_fixture" | grep -c "$scanner_fixture")"
+if [ "$scanner_fixture_matches" -ne 2 ]; then
+    fail "한 줄·여러 줄 telemetry 회귀 검사기가 동작하지 않는다"
 fi
 
 dart_sources="$(git ls-files 'lib/src/*.dart' 'lib/src/**/*.dart')"
