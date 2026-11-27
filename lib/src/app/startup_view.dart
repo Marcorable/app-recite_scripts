@@ -55,14 +55,13 @@ final class _StartupViewState extends State<StartupView>
   }
 
   void _syncMotionPreference() {
+    final accessibilityFeatures =
+        WidgetsBinding.instance.platformDispatcher.accessibilityFeatures;
     final reduceMotion =
         MediaQuery.maybeDisableAnimationsOf(context) ??
         false ||
-            WidgetsBinding
-                .instance
-                .platformDispatcher
-                .accessibilityFeatures
-                .reduceMotion;
+            accessibilityFeatures.disableAnimations ||
+            accessibilityFeatures.reduceMotion;
     if (_reduceMotion == reduceMotion) return;
     _reduceMotion = reduceMotion;
     if (_reduceMotion && _animationStarted && !_animationComplete) {

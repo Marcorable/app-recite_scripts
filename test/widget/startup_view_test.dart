@@ -69,6 +69,21 @@ void main() {
     expect(find.text('준비 완료'), findsOneWidget);
   });
 
+  testWidgets('Android 애니메이션 삭제에서도 커서 이동 없이 준비된 앱을 표시한다', (tester) async {
+    tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+
+    await tester.pumpWidget(
+      StartupView(
+        initialization: Future<void>.value(),
+        appBuilder: () => const _ReadyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('준비 완료'), findsOneWidget);
+  });
+
   testWidgets('지정한 256 논리 픽셀 크기로 로고를 표시한다', (tester) async {
     await tester.pumpWidget(
       StartupView(
