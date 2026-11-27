@@ -12,15 +12,14 @@ import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/shared/design/app_tokens.dart';
 
 void main() {
-  testWidgets('완료 현재 대기 어절을 구분하고 Repository 상태로만 전진한다', (tester) async {
+  testWidgets('마지막으로 읽은 어절을 현재 포인터로 표시한다', (tester) async {
     final repository = _ReadingRepository(_state(currentWordIndex: 1));
     final semantics = tester.ensureSemantics();
     await _pumpView(tester, repository);
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('완료한 어절, 오늘'), findsOneWidget);
-    expect(find.bySemanticsLabel('현재 어절, 읽을'), findsOneWidget);
-    expect(find.bySemanticsLabel('대기 중인 어절, 문장을'), findsOneWidget);
+    expect(find.bySemanticsLabel('현재 어절, 오늘'), findsOneWidget);
+    expect(find.bySemanticsLabel('대기 중인 어절, 읽을'), findsOneWidget);
 
     await tester.tap(find.text('문장을'));
     await tester.pump();
@@ -29,8 +28,8 @@ void main() {
 
     repository.emit(_state(currentWordIndex: 3, generation: 1));
     await tester.pump();
-    expect(find.bySemanticsLabel('현재 어절, 천천히'), findsOneWidget);
-    expect(find.bySemanticsLabel('완료한 어절, 문장을'), findsOneWidget);
+    expect(find.bySemanticsLabel('현재 어절, 문장을'), findsOneWidget);
+    expect(find.bySemanticsLabel('완료한 어절, 읽을'), findsOneWidget);
     semantics.dispose();
   });
 
@@ -135,7 +134,7 @@ void main() {
     await tester.pump();
     expect(repository.state?.currentWordIndex, 1);
     expect(repository.moveBackCallCount, 1);
-    expect(find.bySemanticsLabel('현재 어절, 읽을'), findsOneWidget);
+    expect(find.bySemanticsLabel('현재 어절, 오늘'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('reading-move-back-button')));
     await tester.pump();
