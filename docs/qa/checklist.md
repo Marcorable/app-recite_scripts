@@ -55,6 +55,7 @@
 | AUTO-05 | P1 | Android debug build와 app unit test | 빌드·네이티브 테스트 통과 |
 | AUTO-06 | P1 | iOS Simulator debug build와 RunnerTests | 빌드·네이티브 테스트 통과 |
 | AUTO-07 | P0 | `./scripts/verify_privacy.sh` | 백업 제외·녹음 파일·telemetry 경계 검사 통과 |
+| AUTO-08 | P1 | 진단 모델 unit test | 대본·전사문 없이 세션·회차·커서·종료 사유만 기록 |
 
 ## 5. 대본 저장과 앱 흐름
 

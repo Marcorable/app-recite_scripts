@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:maltto/src/features/reading/data/local_reading_session_repository.dart';
 import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
+import 'package:maltto/src/features/reading/data/reading_session_diagnostics.dart';
 import 'package:maltto/src/features/reading/data/reading_session_timer.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
@@ -14,15 +15,18 @@ void main() {
   late _FakeTimerFactory timerFactory;
   late DateTime now;
   late LocalReadingSessionRepository repository;
+  late _FakeReadingDiagnostics diagnostics;
 
   setUp(() {
     sttService = _FakeSttService();
     timerFactory = _FakeTimerFactory();
+    diagnostics = _FakeReadingDiagnostics();
     now = DateTime.utc(2026, 11, 2, 9);
     repository = LocalReadingSessionRepository(
       sttService,
       timerFactory: timerFactory.create,
       clock: () => now,
+      diagnostics: diagnostics,
     );
   });
 
@@ -375,6 +379,26 @@ void main() {
     expect(sttService.startedGenerations, [1, 2]);
   });
 
+  test('인식 재시작 작업 실패는 종료 원인을 진단에 기록한다', () async {
+    await repository.start(script: _script, repetitions: 1);
+    sttService.startError = StateError('restart failed');
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 1,
+        kind: SttEventKind.ended,
+      ),
+    );
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.status, ReadingSessionStatus.exited);
+    final terminalEvent = diagnostics.events.singleWhere(
+      (event) => event.kind == ReadingDiagnosticKind.recognitionFailed,
+    );
+    expect(terminalEvent.reason, 'resource_operation_failed');
+  });
+
   test('복구 불가 failure는 세션을 종료하고 모든 자원을 정리한다', () async {
     await repository.start(script: _script, repetitions: 1);
     sttService.emit(
@@ -601,6 +625,48 @@ void main() {
     expect(await repository.openAppSettings(), isTrue);
     expect(sttService.openAppSettingsCallCount, 1);
   });
+
+  test('진단 이벤트는 세션 경계와 1분 heartbeat를 사용자 콘텐츠 없이 기록한다', () async {
+    await repository.start(script: _script, repetitions: 1);
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 1,
+        kind: SttEventKind.ready,
+      ),
+    );
+    sttService.emit(_transcript(generation: 1, sequence: 2, text: '아침에는 창문을'));
+    now = now.add(const Duration(minutes: 1, seconds: 3));
+    timerFactory.timer.fire();
+    await repository.moveBackOneWord();
+    await pumpEventQueue(times: 10);
+    await repository.leave();
+
+    expect(
+      diagnostics.events.map((event) => event.kind),
+      containsAllInOrder([
+        ReadingDiagnosticKind.sessionStarted,
+        ReadingDiagnosticKind.recognitionReady,
+        ReadingDiagnosticKind.cursorAdvanced,
+        ReadingDiagnosticKind.heartbeat,
+        ReadingDiagnosticKind.movedBack,
+        ReadingDiagnosticKind.sessionLeft,
+      ]),
+    );
+    final encoded = diagnostics.events
+        .map((event) => event.toJson())
+        .toString();
+    expect(encoded, isNot(contains(_script.title)));
+    expect(encoded, isNot(contains(_script.body)));
+    expect(encoded, isNot(contains('창문을')));
+    expect(
+      diagnostics.events
+          .singleWhere((event) => event.kind == ReadingDiagnosticKind.heartbeat)
+          .elapsedMillis,
+      const Duration(minutes: 1, seconds: 3).inMilliseconds,
+    );
+  });
 }
 
 const _body = '아침에는 창문을 열고 문장을 읽는다';
@@ -637,6 +703,13 @@ final class _FakeTimerFactory {
     timers.add(timer);
     return timer;
   }
+}
+
+final class _FakeReadingDiagnostics implements ReadingSessionDiagnostics {
+  final List<ReadingDiagnosticEvent> events = [];
+
+  @override
+  void record(ReadingDiagnosticEvent event) => events.add(event);
 }
 
 final class _FakeTimer implements ReadingSessionTimer {

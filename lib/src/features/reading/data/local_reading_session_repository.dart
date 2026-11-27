@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:maltto/src/features/reading/data/reading_session_repository.dart';
+import 'package:maltto/src/features/reading/data/reading_session_diagnostics.dart';
 import 'package:maltto/src/features/reading/data/reading_session_timer.dart';
 import 'package:maltto/src/features/reading/domain/reading_progress.dart';
 import 'package:maltto/src/features/reading/domain/reading_session.dart';
@@ -16,14 +17,17 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
     this._sttService, {
     ReadingSessionTimerFactory? timerFactory,
     ReadingSessionClock? clock,
+    ReadingSessionDiagnostics? diagnostics,
   }) : _timerFactory = timerFactory ?? createReadingSessionTimer,
-       _clock = clock ?? DateTime.now;
+       _clock = clock ?? DateTime.now,
+       _diagnostics = diagnostics ?? createReadingSessionDiagnostics();
 
   static const _locale = 'ko-KR';
 
   final SttService _sttService;
   final ReadingSessionTimerFactory _timerFactory;
   final ReadingSessionClock _clock;
+  final ReadingSessionDiagnostics _diagnostics;
   final StreamController<ReadingSessionState> _states =
       StreamController<ReadingSessionState>.broadcast(sync: true);
 
@@ -36,6 +40,7 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
   int _startAttempt = 0;
   bool _isStarting = false;
   bool _disposed = false;
+  int _lastDiagnosticMinute = 0;
 
   @override
   ReadingSessionState? get state => _reducer?.state;
@@ -96,8 +101,10 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
       }
 
       _startedAt = _clock();
+      _lastDiagnosticMinute = 0;
       _timer = _timerFactory(_updateElapsed);
       _emit();
+      _record(ReadingDiagnosticKind.sessionStarted);
       return reducer.state;
     } finally {
       _isStarting = false;
@@ -113,7 +120,10 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
         generation: event.generation,
         sequence: event.sequence,
       );
-      if (transition != ReadingSessionTransition.ignored) _emit();
+      if (transition != ReadingSessionTransition.ignored) {
+        _emit();
+        _record(ReadingDiagnosticKind.recognitionReady);
+      }
       return;
     }
     if (event.kind == SttEventKind.ended ||
@@ -133,6 +143,10 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
 
       _stopTimer();
       _emit();
+      _record(
+        ReadingDiagnosticKind.recognitionFailed,
+        reason: event.failureCode?.name ?? 'unknown',
+      );
       final exitedState = reducer.state;
       _enqueueResourceOperation(
         () => _cleanUpActiveResources(exitedState.sessionId),
@@ -160,14 +174,18 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
 
     _emit();
     if (transition == ReadingSessionTransition.repetitionCompleted) {
+      _record(ReadingDiagnosticKind.repetitionCompleted);
       final nextState = reducer.state;
       _enqueueResourceOperation(() => _sttService.cancel(nextState.sessionId));
     } else if (transition == ReadingSessionTransition.sessionCompleted) {
+      _record(ReadingDiagnosticKind.sessionCompleted);
       _stopTimer();
       final completedState = reducer.state;
       _enqueueResourceOperation(
         () => _cleanUpActiveResources(completedState.sessionId),
       );
+    } else {
+      _record(ReadingDiagnosticKind.cursorAdvanced);
     }
   }
 
@@ -181,6 +199,12 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
 
     final nextState = reducer.state;
     _emit();
+    _record(
+      ReadingDiagnosticKind.recognitionRestarted,
+      reason: event.kind == SttEventKind.ended
+          ? 'ended'
+          : 'retryable_${event.failureCode?.name ?? 'unknown'}',
+    );
     _enqueueResourceOperation(() async {
       final current = _reducer?.state;
       if (current?.status != ReadingSessionStatus.running ||
@@ -198,6 +222,11 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
     final elapsed = _clock().difference(startedAt);
     if (reducer.updateElapsed(elapsed) != ReadingSessionTransition.ignored) {
       _emit();
+      final elapsedMinute = elapsed.inMinutes;
+      if (elapsedMinute > _lastDiagnosticMinute) {
+        _lastDiagnosticMinute = elapsedMinute;
+        _record(ReadingDiagnosticKind.heartbeat);
+      }
     }
   }
 
@@ -210,6 +239,7 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
 
     final nextState = reducer.state;
     _emit();
+    _record(ReadingDiagnosticKind.movedBack);
     _enqueueResourceOperation(() async {
       await _sttService.cancel(nextState.sessionId);
       final current = _reducer?.state;
@@ -230,6 +260,7 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
 
     final nextState = reducer.state;
     _emit();
+    _record(ReadingDiagnosticKind.nextRepetitionStarted);
     _enqueueResourceOperation(() async {
       final current = _reducer?.state;
       if (current?.status != ReadingSessionStatus.running ||
@@ -249,6 +280,7 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
     final transition = reducer.exit();
     if (transition == ReadingSessionTransition.exited) {
       _emit();
+      _record(ReadingDiagnosticKind.sessionLeft);
     }
     _stopTimer();
     final sessionId = reducer.state.sessionId;
@@ -269,6 +301,10 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
         if (reducer?.exit() == ReadingSessionTransition.exited) {
           _stopTimer();
           _emit();
+          _record(
+            ReadingDiagnosticKind.recognitionFailed,
+            reason: 'resource_operation_failed',
+          );
         }
         final sessionId = reducer?.state.sessionId;
         if (sessionId != null) {
@@ -301,6 +337,18 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
     if (_disposed || _states.isClosed) return;
     final current = _reducer?.state;
     if (current != null) _states.add(current);
+  }
+
+  void _record(ReadingDiagnosticKind kind, {String? reason}) {
+    final current = _reducer?.state;
+    if (current == null) return;
+    _diagnostics.record(
+      ReadingDiagnosticEvent.fromState(
+        kind: kind,
+        state: current,
+        reason: reason,
+      ),
+    );
   }
 
   SttStartRequest _requestFor(ReadingSessionState state) => SttStartRequest(
