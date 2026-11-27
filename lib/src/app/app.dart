@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
+import 'package:maltto/src/features/scripts/presentation/duo_toolbar_controller.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/infrastructure/stt/stt_models.dart';
@@ -15,6 +16,7 @@ final class MalttoApp extends StatefulWidget {
     required this.readingSetupBuilder,
     this.prepareReading,
     this.openAppSettings,
+    this.duoToolbarController,
     this.onDispose,
     super.key,
   });
@@ -24,6 +26,7 @@ final class MalttoApp extends StatefulWidget {
   final Widget Function(Script script) readingSetupBuilder;
   final Future<SttPreparation> Function()? prepareReading;
   final Future<bool> Function()? openAppSettings;
+  final DuoToolbarController? duoToolbarController;
   final Future<void> Function()? onDispose;
 
   @override
@@ -54,6 +57,7 @@ final class _MalttoAppState extends State<MalttoApp> {
         readingSetupBuilder: widget.readingSetupBuilder,
         prepareReading: widget.prepareReading,
         openAppSettings: widget.openAppSettings,
+        duoToolbarController: widget.duoToolbarController,
       ),
     );
   }

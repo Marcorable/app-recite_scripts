@@ -23,43 +23,34 @@ class SceneDelegate: FlutterSceneDelegate {
   }
 }
 
-private final class DuoToolbarNavigationController: UINavigationController {
-  private static let channelName = "com.marcorable.maltto/duo_toolbar"
-
+private final class DuoToolbarNavigationController: UINavigationController, DuoToolbarHostApi {
   private let flutterViewController: FlutterViewController
+  private let flutterApi: DuoToolbarFlutterApi
   private lazy var addItem: UIBarButtonItem = {
     let item = UIBarButtonItem(
       systemItem: .add,
       primaryAction: UIAction { [weak self] _ in
-        self?.channel.invokeMethod("openCreate", arguments: nil)
+        guard let self else { return }
+        Task { try await self.flutterApi.openCreate() }
       }
     )
     item.accessibilityLabel = "새 대본 추가"
     return item
   }()
   private lazy var addGroup = UIBarButtonItemGroup.fixedGroup(items: [addItem])
-  private lazy var channel = FlutterMethodChannel(
-    name: Self.channelName,
-    binaryMessenger: flutterViewController.binaryMessenger
-  )
 
   init(flutterViewController: FlutterViewController) {
     self.flutterViewController = flutterViewController
+    self.flutterApi = DuoToolbarFlutterApi(
+      binaryMessenger: flutterViewController.binaryMessenger
+    )
     super.init(rootViewController: flutterViewController)
     navigationBar.prefersLargeTitles = false
     flutterViewController.navigationItem.pinnedTrailingGroup = addGroup
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self else { return }
-      switch call.method {
-      case "isVerticalToolbar":
-        result(self.usesVerticalToolbar)
-      case "setAddVisible":
-        self.addGroup.isHidden = !((call.arguments as? Bool) ?? true)
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
+    DuoToolbarHostApiSetup.setUp(
+      binaryMessenger: flutterViewController.binaryMessenger,
+      api: self
+    )
   }
 
   @available(*, unavailable)
@@ -82,10 +73,18 @@ private final class DuoToolbarNavigationController: UINavigationController {
     return traitCollection.verticalBarEdge != .unspecified
   }
 
+  func isVerticalToolbar() throws -> Bool {
+    usesVerticalToolbar
+  }
+
+  func setAddVisible(visible: Bool) throws {
+    addGroup.isHidden = !visible
+  }
+
   private func updateToolbarPlacement() {
     let isVertical = usesVerticalToolbar
     setNavigationBarHidden(!isVertical, animated: false)
-    channel.invokeMethod("verticalToolbarChanged", arguments: isVertical)
+    Task { try await flutterApi.verticalToolbarChanged(isVertical: isVertical) }
   }
 
 }

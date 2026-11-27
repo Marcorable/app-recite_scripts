@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
+import 'package:maltto/src/features/scripts/presentation/duo_toolbar_controller.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_components.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_navigation_actions.dart';
@@ -20,6 +20,7 @@ final class ScriptListView extends StatefulWidget {
     required this.readingSetupBuilder,
     this.prepareReading,
     this.openAppSettings,
+    this.duoToolbarController,
     super.key,
   });
 
@@ -28,16 +29,13 @@ final class ScriptListView extends StatefulWidget {
   final Widget Function(Script script) readingSetupBuilder;
   final Future<SttPreparation> Function()? prepareReading;
   final Future<bool> Function()? openAppSettings;
+  final DuoToolbarController? duoToolbarController;
 
   @override
   State<ScriptListView> createState() => _ScriptListViewState();
 }
 
 final class _ScriptListViewState extends State<ScriptListView> {
-  static const _duoToolbarChannel = MethodChannel(
-    'com.marcorable.maltto/duo_toolbar',
-  );
-
   bool _isOpeningReadingFlow = false;
   bool _hasNativeToolbarHost = false;
   bool _usesNativeVerticalToolbar = false;
@@ -46,47 +44,43 @@ final class _ScriptListViewState extends State<ScriptListView> {
   void initState() {
     super.initState();
     widget.viewModel.load();
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-      _duoToolbarChannel.setMethodCallHandler(_handleDuoToolbarCall);
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        widget.duoToolbarController != null) {
+      widget.duoToolbarController!.setHandlers(
+        onOpenCreate: _openCreateView,
+        onVerticalToolbarChanged: _handleToolbarPlacementChanged,
+      );
       _loadDuoToolbarPlacement();
     }
   }
 
   @override
   void dispose() {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-      _duoToolbarChannel.setMethodCallHandler(null);
-    }
+    widget.duoToolbarController?.dispose();
     super.dispose();
   }
 
   Future<void> _loadDuoToolbarPlacement() async {
     try {
       final isVertical =
-          await _duoToolbarChannel.invokeMethod<bool>('isVerticalToolbar') ??
-          false;
+          await widget.duoToolbarController?.isVerticalToolbar() ?? false;
       _hasNativeToolbarHost = true;
       if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
-    } on MissingPluginException {
+    } on Object {
       // Older iOS hosts keep the Flutter navigation action.
     }
   }
 
-  Future<void> _handleDuoToolbarCall(MethodCall call) async {
-    switch (call.method) {
-      case 'openCreate':
-        await _openCreateView();
-      case 'verticalToolbarChanged':
-        final isVertical = call.arguments as bool? ?? false;
-        if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
-    }
+  void _handleToolbarPlacementChanged(bool isVertical) {
+    if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
   }
 
   Future<void> _setNativeAddVisible(bool visible) async {
     if (!_hasNativeToolbarHost) return;
     try {
-      await _duoToolbarChannel.invokeMethod<void>('setAddVisible', visible);
-    } on MissingPluginException {
+      await widget.duoToolbarController?.setAddVisible(visible);
+    } on Object {
       // The Flutter action remains available when the native host is absent.
     }
   }

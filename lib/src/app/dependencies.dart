@@ -8,6 +8,7 @@ import 'package:maltto/src/features/scripts/presentation/script_create_view_mode
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/infrastructure/database/app_database.dart';
 import 'package:maltto/src/infrastructure/database/drift_script_service.dart';
+import 'package:maltto/src/infrastructure/duo_toolbar/pigeon_duo_toolbar_controller.dart';
 import 'package:maltto/src/infrastructure/stt/pigeon_stt_service.dart';
 
 Widget createApp() {
@@ -30,6 +31,7 @@ Widget createApp() {
     ),
     prepareReading: readingSessionRepository.prepareForReading,
     openAppSettings: readingSessionRepository.openAppSettings,
+    duoToolbarController: PigeonDuoToolbarController(),
     onDispose: () async {
       await readingSessionRepository.dispose();
       await database.close();

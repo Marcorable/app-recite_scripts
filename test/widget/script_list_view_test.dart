@@ -3,11 +3,11 @@ import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/app/app.dart';
 import 'package:maltto/src/features/scripts/data/script_repository.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
+import 'package:maltto/src/features/scripts/presentation/duo_toolbar_controller.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/infrastructure/stt/stt_models.dart';
@@ -98,49 +98,31 @@ void main() {
   });
 
   testWidgets('Duo 툴바 방향이 바뀌어도 추가 화면 복귀 시 네이티브 액션을 복원한다', (tester) async {
-    const channel = MethodChannel('com.marcorable.maltto/duo_toolbar');
-    final visibilityChanges = <bool>[];
+    final toolbar = _FakeDuoToolbarController(isVertical: true);
     final originalPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
-      call,
-    ) async {
-      switch (call.method) {
-        case 'isVerticalToolbar':
-          return true;
-        case 'setAddVisible':
-          visibilityChanges.add(call.arguments as bool);
-      }
-      return null;
-    });
 
     try {
-      await tester.pumpWidget(_buildApp(_WidgetScriptRepository()));
+      await tester.pumpWidget(
+        _buildApp(_WidgetScriptRepository(), duoToolbarController: toolbar),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('script-list-add-button')), findsNothing);
 
-      unawaited(_sendNativeToolbarCall(tester, 'openCreate'));
+      toolbar.openCreate();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('script-title-field')), findsOneWidget);
-      expect(visibilityChanges, orderedEquals([false]));
+      expect(toolbar.visibilityChanges, orderedEquals([false]));
 
-      await _sendNativeToolbarCall(
-        tester,
-        'verticalToolbarChanged',
-        arguments: false,
-      );
+      toolbar.changePlacement(false);
       await tester.pump();
       await tester.tap(find.byKey(const Key('script-create-cancel-button')));
       await tester.pumpAndSettle();
 
-      expect(visibilityChanges, orderedEquals([false, true]));
+      expect(toolbar.visibilityChanges, orderedEquals([false, true]));
       expect(find.byKey(const Key('script-list-add-button')), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = originalPlatform;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        channel,
-        null,
-      );
     }
   });
 
@@ -656,26 +638,15 @@ void main() {
   }
 }
 
-Future<void> _sendNativeToolbarCall(
-  WidgetTester tester,
-  String method, {
-  Object? arguments,
-}) async {
-  const channel = MethodChannel('com.marcorable.maltto/duo_toolbar');
-  final completer = Completer<void>();
-  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-    channel.name,
-    channel.codec.encodeMethodCall(MethodCall(method, arguments)),
-    (_) => completer.complete(),
-  );
-  await completer.future;
-}
-
-Widget _buildApp(_WidgetScriptRepository repository) {
+Widget _buildApp(
+  _WidgetScriptRepository repository, {
+  DuoToolbarController? duoToolbarController,
+}) {
   return MalttoApp(
     scriptListViewModel: ScriptListViewModel(repository),
     createScriptViewModel: () => ScriptCreateViewModel(repository),
     readingSetupBuilder: (_) => const SizedBox.shrink(),
+    duoToolbarController: duoToolbarController,
   );
 }
 
@@ -738,5 +709,46 @@ final class _WidgetScriptRepository implements ScriptRepository {
   Future<void> delete(int id) async {
     scripts.removeWhere((script) => script.id == id);
     _controller.add(List.unmodifiable(scripts));
+  }
+}
+
+final class _FakeDuoToolbarController implements DuoToolbarController {
+  _FakeDuoToolbarController({required this.isVertical});
+
+  bool isVertical;
+  final visibilityChanges = <bool>[];
+  Future<void> Function()? _onOpenCreate;
+  void Function(bool isVertical)? _onVerticalToolbarChanged;
+
+  @override
+  Future<bool> isVerticalToolbar() async => isVertical;
+
+  @override
+  Future<void> setAddVisible(bool visible) async {
+    visibilityChanges.add(visible);
+  }
+
+  @override
+  void setHandlers({
+    required Future<void> Function() onOpenCreate,
+    required void Function(bool isVertical) onVerticalToolbarChanged,
+  }) {
+    _onOpenCreate = onOpenCreate;
+    _onVerticalToolbarChanged = onVerticalToolbarChanged;
+  }
+
+  void openCreate() {
+    unawaited(_onOpenCreate?.call());
+  }
+
+  void changePlacement(bool value) {
+    isVertical = value;
+    _onVerticalToolbarChanged?.call(value);
+  }
+
+  @override
+  void dispose() {
+    _onOpenCreate = null;
+    _onVerticalToolbarChanged = null;
   }
 }
