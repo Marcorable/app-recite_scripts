@@ -301,6 +301,10 @@ final class LocalReadingSessionRepository implements ReadingSessionRepository {
         if (reducer?.exit() == ReadingSessionTransition.exited) {
           _stopTimer();
           _emit();
+          _record(
+            ReadingDiagnosticKind.recognitionFailed,
+            reason: 'resource_operation_failed',
+          );
         }
         final sessionId = reducer?.state.sessionId;
         if (sessionId != null) {

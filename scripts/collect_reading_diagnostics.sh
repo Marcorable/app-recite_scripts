@@ -23,7 +23,9 @@ cleanup() {
     if [ -n "$logger_pid" ]; then
         kill "$logger_pid" 2>/dev/null || true
         wait "$logger_pid" 2>/dev/null || true
+        logger_pid=""
     fi
+    grep 'MalttoReadingDiagnostics' "$raw_file" >"$events_file" || true
     rm -f "$raw_file"
 }
 trap cleanup EXIT INT TERM
@@ -63,10 +65,8 @@ while [ "$(($(date +%s) - started_at))" -lt "$duration_seconds" ]; do
     if [ "$remaining" -lt 30 ]; then sleep "$remaining"; else sleep 30; fi
 done
 
-kill "$logger_pid" 2>/dev/null || true
-wait "$logger_pid" 2>/dev/null || true
-logger_pid=""
-grep 'MalttoReadingDiagnostics' "$raw_file" >"$events_file" || true
+cleanup
+trap - EXIT INT TERM
 
 echo "진단 이벤트: $events_file"
 echo "자원 지표: $metrics_file"

@@ -379,6 +379,26 @@ void main() {
     expect(sttService.startedGenerations, [1, 2]);
   });
 
+  test('인식 재시작 작업 실패는 종료 원인을 진단에 기록한다', () async {
+    await repository.start(script: _script, repetitions: 1);
+    sttService.startError = StateError('restart failed');
+    sttService.emit(
+      const SttEvent(
+        sessionId: 'reading-1',
+        generation: 1,
+        sequence: 1,
+        kind: SttEventKind.ended,
+      ),
+    );
+    await pumpEventQueue(times: 10);
+
+    expect(repository.state?.status, ReadingSessionStatus.exited);
+    final terminalEvent = diagnostics.events.singleWhere(
+      (event) => event.kind == ReadingDiagnosticKind.recognitionFailed,
+    );
+    expect(terminalEvent.reason, 'resource_operation_failed');
+  });
+
   test('복구 불가 failure는 세션을 종료하고 모든 자원을 정리한다', () async {
     await repository.start(script: _script, repetitions: 1);
     sttService.emit(
