@@ -47,6 +47,7 @@ private final class DuoToolbarNavigationController: UINavigationController, DuoT
     super.init(rootViewController: flutterViewController)
     navigationBar.prefersLargeTitles = false
     flutterViewController.navigationItem.pinnedTrailingGroup = addGroup
+    addGroup.isHidden = true
     DuoToolbarHostApiSetup.setUp(
       binaryMessenger: flutterViewController.binaryMessenger,
       api: self

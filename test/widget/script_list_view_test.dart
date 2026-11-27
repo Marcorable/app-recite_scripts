@@ -108,18 +108,22 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('script-list-add-button')), findsNothing);
+      expect(toolbar.visibilityChanges, orderedEquals([true]));
 
       toolbar.openCreate();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('script-title-field')), findsOneWidget);
-      expect(toolbar.visibilityChanges, orderedEquals([false]));
+      expect(toolbar.visibilityChanges, orderedEquals([true, false]));
 
       toolbar.changePlacement(false);
       await tester.pump();
       await tester.tap(find.byKey(const Key('script-create-cancel-button')));
       await tester.pumpAndSettle();
 
-      expect(toolbar.visibilityChanges, orderedEquals([false, true]));
+      expect(
+        toolbar.visibilityChanges,
+        orderedEquals([true, false, false, false]),
+      );
       expect(find.byKey(const Key('script-list-add-button')), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = originalPlatform;

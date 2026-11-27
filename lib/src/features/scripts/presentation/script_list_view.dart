@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
@@ -66,6 +68,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
       final isVertical =
           await widget.duoToolbarController?.isVerticalToolbar() ?? false;
       _hasNativeToolbarHost = true;
+      await _setNativeAddVisible(isVertical);
       if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
     } on Object {
       // Older iOS hosts keep the Flutter navigation action.
@@ -73,7 +76,9 @@ final class _ScriptListViewState extends State<ScriptListView> {
   }
 
   void _handleToolbarPlacementChanged(bool isVertical) {
-    if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
+    if (!mounted) return;
+    setState(() => _usesNativeVerticalToolbar = isVertical);
+    unawaited(_setNativeAddVisible(isVertical));
   }
 
   Future<void> _setNativeAddVisible(bool visible) async {
@@ -88,7 +93,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
   Future<void> _openCreateView() async {
     await _setNativeAddVisible(false);
     if (!mounted) {
-      await _setNativeAddVisible(true);
+      await _restoreNativeAddVisibility();
       return;
     }
     try {
@@ -100,7 +105,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
         ),
       );
     } finally {
-      await _setNativeAddVisible(true);
+      await _restoreNativeAddVisibility();
     }
   }
 
@@ -163,9 +168,12 @@ final class _ScriptListViewState extends State<ScriptListView> {
       );
     } finally {
       _isOpeningReadingFlow = false;
-      await _setNativeAddVisible(true);
+      await _restoreNativeAddVisibility();
     }
   }
+
+  Future<void> _restoreNativeAddVisibility() =>
+      _setNativeAddVisible(_usesNativeVerticalToolbar);
 
   Future<void> _showPermissionDenied() => showCupertinoDialog<void>(
     context: context,
