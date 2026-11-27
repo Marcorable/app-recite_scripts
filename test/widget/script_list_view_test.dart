@@ -3,6 +3,7 @@ import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/app/app.dart';
 import 'package:maltto/src/features/scripts/data/script_repository.dart';
@@ -94,6 +95,53 @@ void main() {
     await tester.tap(find.byKey(const Key('script-create-cancel-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('script-title-field')), findsNothing);
+  });
+
+  testWidgets('Duo 툴바 방향이 바뀌어도 추가 화면 복귀 시 네이티브 액션을 복원한다', (tester) async {
+    const channel = MethodChannel('com.marcorable.maltto/duo_toolbar');
+    final visibilityChanges = <bool>[];
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      switch (call.method) {
+        case 'isVerticalToolbar':
+          return true;
+        case 'setAddVisible':
+          visibilityChanges.add(call.arguments as bool);
+      }
+      return null;
+    });
+
+    try {
+      await tester.pumpWidget(_buildApp(_WidgetScriptRepository()));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('script-list-add-button')), findsNothing);
+
+      unawaited(_sendNativeToolbarCall(tester, 'openCreate'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('script-title-field')), findsOneWidget);
+      expect(visibilityChanges, orderedEquals([false]));
+
+      await _sendNativeToolbarCall(
+        tester,
+        'verticalToolbarChanged',
+        arguments: false,
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('script-create-cancel-button')));
+      await tester.pumpAndSettle();
+
+      expect(visibilityChanges, orderedEquals([false, true]));
+      expect(find.byKey(const Key('script-list-add-button')), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = originalPlatform;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      );
+    }
   });
 
   testWidgets('권한 거부는 OS 요청을 반복하지 않고 앱 설정 안내를 표시한다', (tester) async {
@@ -520,35 +568,55 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('목록 전체를 우측 안전 영역 안에 표시한다', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    tester.view.devicePixelRatio = 1;
-    tester.view.padding = const FakeViewPadding(right: 96);
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-      tester.view.resetDevicePixelRatio();
-      tester.view.resetPadding();
+  for (final scenario in [
+    (name: '기본 글씨', scale: 1.0),
+    (name: '큰 글씨', scale: 2.0),
+  ]) {
+    testWidgets('${scenario.name}에서 목록 전체를 우측 안전 영역 안에 표시한다', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(right: 96);
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.scale;
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+        tester.view.resetDevicePixelRatio();
+        tester.view.resetPadding();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      final repository = _WidgetScriptRepository(
+        initialScripts: [
+          _script(id: 1, title: '안전 영역 확인', body: '직접 작성한 문장을 천천히 읽습니다.'),
+        ],
+      );
+      await tester.pumpWidget(_buildApp(repository));
+      await tester.pumpAndSettle();
+
+      final deleteButton = find.ancestor(
+        of: find.byIcon(CupertinoIcons.delete),
+        matching: find.byType(CupertinoButton),
+      );
+      final tile = find.byKey(const ValueKey('script-list-tile-1'));
+      final divider = find.byKey(const ValueKey('script-list-divider-1'));
+
+      expect(tester.getRect(tile).right, lessThanOrEqualTo(294));
+      expect(tester.getRect(divider).right, lessThanOrEqualTo(294));
+      expect(tester.getRect(deleteButton.first).right, lessThanOrEqualTo(294));
+      expect(
+        tester.getSize(deleteButton.first).width,
+        greaterThanOrEqualTo(48),
+      );
+      expect(
+        tester.getSize(deleteButton.first).height,
+        greaterThanOrEqualTo(48),
+      );
+
+      await tester.tap(deleteButton.first);
+      await tester.pumpAndSettle();
+      expect(find.text('대본을 삭제할까요?'), findsOneWidget);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
     });
-    final repository = _WidgetScriptRepository(
-      initialScripts: [
-        _script(id: 1, title: '안전 영역 확인', body: '직접 작성한 문장을 천천히 읽습니다.'),
-      ],
-    );
-
-    await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    final deleteButton = find.ancestor(
-      of: find.byIcon(CupertinoIcons.delete),
-      matching: find.byType(CupertinoButton),
-    );
-    final tile = find.byKey(const ValueKey('script-list-tile-1'));
-    final divider = find.byKey(const ValueKey('script-list-divider-1'));
-
-    expect(tester.getRect(tile).right, lessThanOrEqualTo(294));
-    expect(tester.getRect(divider).right, lessThanOrEqualTo(294));
-    expect(tester.getRect(deleteButton.first).right, lessThanOrEqualTo(294));
-  });
+  }
 
   for (final scenario in [
     (name: 'default', scale: 1.0),
@@ -586,6 +654,21 @@ void main() {
       );
     });
   }
+}
+
+Future<void> _sendNativeToolbarCall(
+  WidgetTester tester,
+  String method, {
+  Object? arguments,
+}) async {
+  const channel = MethodChannel('com.marcorable.maltto/duo_toolbar');
+  final completer = Completer<void>();
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    channel.name,
+    channel.codec.encodeMethodCall(MethodCall(method, arguments)),
+    (_) => completer.complete(),
+  );
+  await completer.future;
 }
 
 Widget _buildApp(_WidgetScriptRepository repository) {

@@ -39,6 +39,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
   );
 
   bool _isOpeningReadingFlow = false;
+  bool _hasNativeToolbarHost = false;
   bool _usesNativeVerticalToolbar = false;
 
   @override
@@ -64,6 +65,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
       final isVertical =
           await _duoToolbarChannel.invokeMethod<bool>('isVerticalToolbar') ??
           false;
+      _hasNativeToolbarHost = true;
       if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
     } on MissingPluginException {
       // Older iOS hosts keep the Flutter navigation action.
@@ -81,7 +83,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
   }
 
   Future<void> _setNativeAddVisible(bool visible) async {
-    if (!_usesNativeVerticalToolbar) return;
+    if (!_hasNativeToolbarHost) return;
     try {
       await _duoToolbarChannel.invokeMethod<void>('setAddVisible', visible);
     } on MissingPluginException {
