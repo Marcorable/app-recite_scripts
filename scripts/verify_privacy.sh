@@ -43,8 +43,24 @@ fi
 
 # 사용자 입력이나 STT 전사문을 Firebase에 전달하는 호출을 금지한다. 허용되는
 # debug_verification 이벤트는 고정 문자열만 전송하며 사용자 필드를 갖지 않는다.
-telemetry_pattern='setUser(Id|Property)|setCustomKey|logEvent[[:space:]]*\([^)]*(script|transcript|text|body|audio)|recordError[[:space:]]*\([^)]*(script|transcript|text|body|audio)'
-if telemetry_matches="$(git grep -n -E -i "$telemetry_pattern" -- lib/src 2>/dev/null)"; then
+# 호출명과 인자가 서로 다른 줄에 있어도 닫는 `);`까지 하나의 블록으로 검사한다.
+telemetry_scanner='while (/(?:logEvent|recordError|setUserId|setUserProperty|setCustomKey)\s*\((?:(?!\n\s*\);)[\s\S]){0,4000}?\b(?:script|transcript|text|body|audio)\b(?:(?!\n\s*\);)[\s\S])*?\n\s*\);/gi) { print "$ARGV:$&\n" }'
+scanner_fixture="$(mktemp)"
+trap 'rm -f "$scanner_fixture"' EXIT
+printf '%s\n' \
+    '_analytics.logEvent(' \
+    "  name: 'read'," \
+    "  parameters: {'body': script.body}," \
+    ');' >"$scanner_fixture"
+if ! perl -0 -ne "$telemetry_scanner" "$scanner_fixture" | grep -q .; then
+    fail "여러 줄 telemetry 회귀 검사기가 동작하지 않는다"
+fi
+
+dart_sources="$(git ls-files 'lib/src/*.dart' 'lib/src/**/*.dart')"
+# 파일 이름은 저장소 정책상 공백을 포함하지 않는다.
+# shellcheck disable=SC2086
+if telemetry_matches="$(perl -0 -ne "$telemetry_scanner" $dart_sources)" &&
+    [ -n "$telemetry_matches" ]; then
     printf '%s\n' "$telemetry_matches"
     fail "사용자 콘텐츠가 telemetry로 전달될 가능성이 있다"
 fi
