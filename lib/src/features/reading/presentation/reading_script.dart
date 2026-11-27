@@ -19,7 +19,7 @@ final class _ReadingScriptState extends State<_ReadingScript> {
   void initState() {
     super.initState();
     _wordKeys = _createWordKeys();
-    _previousWordIndex = widget.state.currentWordIndex;
+    _previousWordIndex = _pointerWordIndex(widget.state.currentWordIndex);
     _scheduleCurrentWordVisibility();
   }
 
@@ -31,7 +31,7 @@ final class _ReadingScriptState extends State<_ReadingScript> {
     }
     if (oldWidget.state.currentWordIndex != widget.state.currentWordIndex ||
         oldWidget.state.currentRepetition != widget.state.currentRepetition) {
-      _previousWordIndex = oldWidget.state.currentWordIndex;
+      _previousWordIndex = _pointerWordIndex(oldWidget.state.currentWordIndex);
       _scheduleCurrentWordVisibility();
     }
   }
@@ -42,7 +42,7 @@ final class _ReadingScriptState extends State<_ReadingScript> {
   void _scheduleCurrentWordVisibility() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final currentIndex = widget.state.currentWordIndex;
+      final currentIndex = _pointerWordIndex(widget.state.currentWordIndex);
       if (currentIndex == null || currentIndex >= _wordKeys.length) return;
       final wordContext = _wordKeys[currentIndex].currentContext;
       final wordRenderObject = wordContext?.findRenderObject();
@@ -92,6 +92,7 @@ final class _ReadingScriptState extends State<_ReadingScript> {
 
   @override
   Widget build(BuildContext context) {
+    final pointerWordIndex = _pointerWordIndex(widget.state.currentWordIndex);
     return SingleChildScrollView(
       key: const Key('reading-script-scroll'),
       controller: _scrollController,
@@ -109,14 +110,19 @@ final class _ReadingScriptState extends State<_ReadingScript> {
             _ReadingWord(
               key: _wordKeys[index],
               text: widget.state.words[index],
-              status: _wordStatus(index, widget.state.currentWordIndex),
+              status: _wordStatus(index, pointerWordIndex),
               reduceMotion: widget.reduceMotion,
-              isCurrent: index == widget.state.currentWordIndex,
+              isCurrent: index == pointerWordIndex,
             ),
         ],
       ),
     );
   }
+}
+
+int? _pointerWordIndex(int? nextWordIndex) {
+  if (nextWordIndex == null) return null;
+  return nextWordIndex == 0 ? 0 : nextWordIndex - 1;
 }
 
 enum _ReadingWordStatus { completed, current, pending }
