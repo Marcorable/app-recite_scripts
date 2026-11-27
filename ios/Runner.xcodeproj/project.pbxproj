@@ -18,6 +18,7 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A26000010000000000000001 /* SttApi.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26000020000000000000001 /* SttApi.g.swift */; };
+		A29000010000000000000001 /* DuoToolbarApi.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29000020000000000000001 /* DuoToolbarApi.g.swift */; };
 		A26000030000000000000001 /* IosSpeechAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26000040000000000000001 /* IosSpeechAdapter.swift */; };
 		A26000050000000000000001 /* IosSpeechSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26000060000000000000001 /* IosSpeechSession.swift */; };
 		A28000010000000000000001 /* LocalStorageApi.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A28000020000000000000001 /* LocalStorageApi.g.swift */; };
@@ -68,6 +69,7 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2A000010000000000000001 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		A26000020000000000000001 /* SttApi.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Generated/SttApi.g.swift; sourceTree = "<group>"; };
+		A29000020000000000000001 /* DuoToolbarApi.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Generated/DuoToolbarApi.g.swift; sourceTree = "<group>"; };
 		A26000040000000000000001 /* IosSpeechAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosSpeechAdapter.swift; sourceTree = "<group>"; };
 		A26000060000000000000001 /* IosSpeechSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosSpeechSession.swift; sourceTree = "<group>"; };
 		A28000020000000000000001 /* LocalStorageApi.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Generated/LocalStorageApi.g.swift; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				A26000020000000000000001 /* SttApi.g.swift */,
+				A29000020000000000000001 /* DuoToolbarApi.g.swift */,
 				A26000040000000000000001 /* IosSpeechAdapter.swift */,
 				A26000060000000000000001 /* IosSpeechSession.swift */,
 				A28000020000000000000001 /* LocalStorageApi.g.swift */,
@@ -327,6 +330,7 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A26000010000000000000001 /* SttApi.g.swift in Sources */,
+				A29000010000000000000001 /* DuoToolbarApi.g.swift in Sources */,
 				A26000030000000000000001 /* IosSpeechAdapter.swift in Sources */,
 				A26000050000000000000001 /* IosSpeechSession.swift in Sources */,
 				A28000010000000000000001 /* LocalStorageApi.g.swift in Sources */,

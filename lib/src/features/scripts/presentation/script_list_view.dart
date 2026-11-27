@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:maltto/src/features/reading/presentation/reading_setup_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view.dart';
 import 'package:maltto/src/features/reading/presentation/reading_view_model.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
+import 'package:maltto/src/features/scripts/presentation/duo_toolbar_controller.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_components.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_navigation_actions.dart';
@@ -18,6 +20,7 @@ final class ScriptListView extends StatefulWidget {
     required this.readingSetupBuilder,
     this.prepareReading,
     this.openAppSettings,
+    this.duoToolbarController,
     super.key,
   });
 
@@ -26,6 +29,7 @@ final class ScriptListView extends StatefulWidget {
   final Widget Function(Script script) readingSetupBuilder;
   final Future<SttPreparation> Function()? prepareReading;
   final Future<bool> Function()? openAppSettings;
+  final DuoToolbarController? duoToolbarController;
 
   @override
   State<ScriptListView> createState() => _ScriptListViewState();
@@ -33,26 +37,77 @@ final class ScriptListView extends StatefulWidget {
 
 final class _ScriptListViewState extends State<ScriptListView> {
   bool _isOpeningReadingFlow = false;
+  bool _hasNativeToolbarHost = false;
+  bool _usesNativeVerticalToolbar = false;
 
   @override
   void initState() {
     super.initState();
     widget.viewModel.load();
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        widget.duoToolbarController != null) {
+      widget.duoToolbarController!.setHandlers(
+        onOpenCreate: _openCreateView,
+        onVerticalToolbarChanged: _handleToolbarPlacementChanged,
+      );
+      _loadDuoToolbarPlacement();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.duoToolbarController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDuoToolbarPlacement() async {
+    try {
+      final isVertical =
+          await widget.duoToolbarController?.isVerticalToolbar() ?? false;
+      _hasNativeToolbarHost = true;
+      if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
+    } on Object {
+      // Older iOS hosts keep the Flutter navigation action.
+    }
+  }
+
+  void _handleToolbarPlacementChanged(bool isVertical) {
+    if (mounted) setState(() => _usesNativeVerticalToolbar = isVertical);
+  }
+
+  Future<void> _setNativeAddVisible(bool visible) async {
+    if (!_hasNativeToolbarHost) return;
+    try {
+      await widget.duoToolbarController?.setAddVisible(visible);
+    } on Object {
+      // The Flutter action remains available when the native host is absent.
+    }
   }
 
   Future<void> _openCreateView() async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) =>
-            ScriptCreateView(viewModel: widget.createScriptViewModel()),
-      ),
-    );
+    await _setNativeAddVisible(false);
+    if (!mounted) {
+      await _setNativeAddVisible(true);
+      return;
+    }
+    try {
+      await Navigator.of(context).push<void>(
+        CupertinoPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) =>
+              ScriptCreateView(viewModel: widget.createScriptViewModel()),
+        ),
+      );
+    } finally {
+      await _setNativeAddVisible(true);
+    }
   }
 
   Future<void> _openReadingSetup(Script script) async {
     if (_isOpeningReadingFlow) return;
     _isOpeningReadingFlow = true;
+    await _setNativeAddVisible(false);
     try {
       SttPreparation preparation;
       try {
@@ -108,6 +163,7 @@ final class _ScriptListViewState extends State<ScriptListView> {
       );
     } finally {
       _isOpeningReadingFlow = false;
+      await _setNativeAddVisible(true);
     }
   }
 
@@ -239,25 +295,31 @@ final class _ScriptListViewState extends State<ScriptListView> {
                       padding: const EdgeInsets.symmetric(
                         vertical: AppSpacing.large,
                       ),
-                      sliver: SliverList.builder(
-                        itemCount: widget.viewModel.scripts.length,
-                        itemBuilder: (context, index) {
-                          final script = widget.viewModel.scripts[index];
-                          return ScriptListTile(
-                            script: script,
-                            onSelected: () => _openReadingSetup(script),
-                            onDelete: () => _confirmDelete(script),
-                          );
-                        },
+                      sliver: SliverSafeArea(
+                        left: false,
+                        top: false,
+                        bottom: false,
+                        sliver: SliverList.builder(
+                          itemCount: widget.viewModel.scripts.length,
+                          itemBuilder: (context, index) {
+                            final script = widget.viewModel.scripts[index];
+                            return ScriptListTile(
+                              script: script,
+                              onSelected: () => _openReadingSetup(script),
+                              onDelete: () => _confirmDelete(script),
+                            );
+                          },
+                        ),
                       ),
                     ),
                 ],
               );
             },
           ),
-          Positioned.fill(
-            child: ScriptNavigationActionOverlay(trailing: addButton),
-          ),
+          if (!_usesNativeVerticalToolbar)
+            Positioned.fill(
+              child: ScriptNavigationActionOverlay(trailing: addButton),
+            ),
         ],
       ),
     );

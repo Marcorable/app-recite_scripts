@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maltto/src/app/app.dart';
 import 'package:maltto/src/features/scripts/data/script_repository.dart';
 import 'package:maltto/src/features/scripts/model/script.dart';
+import 'package:maltto/src/features/scripts/presentation/duo_toolbar_controller.dart';
 import 'package:maltto/src/features/scripts/presentation/script_create_view_model.dart';
 import 'package:maltto/src/features/scripts/presentation/script_list_view_model.dart';
 import 'package:maltto/src/infrastructure/stt/stt_models.dart';
@@ -94,6 +95,35 @@ void main() {
     await tester.tap(find.byKey(const Key('script-create-cancel-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('script-title-field')), findsNothing);
+  });
+
+  testWidgets('Duo 툴바 방향이 바뀌어도 추가 화면 복귀 시 네이티브 액션을 복원한다', (tester) async {
+    final toolbar = _FakeDuoToolbarController(isVertical: true);
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    try {
+      await tester.pumpWidget(
+        _buildApp(_WidgetScriptRepository(), duoToolbarController: toolbar),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('script-list-add-button')), findsNothing);
+
+      toolbar.openCreate();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('script-title-field')), findsOneWidget);
+      expect(toolbar.visibilityChanges, orderedEquals([false]));
+
+      toolbar.changePlacement(false);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('script-create-cancel-button')));
+      await tester.pumpAndSettle();
+
+      expect(toolbar.visibilityChanges, orderedEquals([false, true]));
+      expect(find.byKey(const Key('script-list-add-button')), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = originalPlatform;
+    }
   });
 
   testWidgets('권한 거부는 OS 요청을 반복하지 않고 앱 설정 안내를 표시한다', (tester) async {
@@ -521,6 +551,56 @@ void main() {
   });
 
   for (final scenario in [
+    (name: '기본 글씨', scale: 1.0),
+    (name: '큰 글씨', scale: 2.0),
+  ]) {
+    testWidgets('${scenario.name}에서 목록 전체를 우측 안전 영역 안에 표시한다', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(right: 96);
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.scale;
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+        tester.view.resetDevicePixelRatio();
+        tester.view.resetPadding();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      final repository = _WidgetScriptRepository(
+        initialScripts: [
+          _script(id: 1, title: '안전 영역 확인', body: '직접 작성한 문장을 천천히 읽습니다.'),
+        ],
+      );
+      await tester.pumpWidget(_buildApp(repository));
+      await tester.pumpAndSettle();
+
+      final deleteButton = find.ancestor(
+        of: find.byIcon(CupertinoIcons.delete),
+        matching: find.byType(CupertinoButton),
+      );
+      final tile = find.byKey(const ValueKey('script-list-tile-1'));
+      final divider = find.byKey(const ValueKey('script-list-divider-1'));
+
+      expect(tester.getRect(tile).right, lessThanOrEqualTo(294));
+      expect(tester.getRect(divider).right, lessThanOrEqualTo(294));
+      expect(tester.getRect(deleteButton.first).right, lessThanOrEqualTo(294));
+      expect(
+        tester.getSize(deleteButton.first).width,
+        greaterThanOrEqualTo(48),
+      );
+      expect(
+        tester.getSize(deleteButton.first).height,
+        greaterThanOrEqualTo(48),
+      );
+
+      await tester.tap(deleteButton.first);
+      await tester.pumpAndSettle();
+      expect(find.text('대본을 삭제할까요?'), findsOneWidget);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+    });
+  }
+
+  for (final scenario in [
     (name: 'default', scale: 1.0),
     (name: 'large-text', scale: 2.0),
   ]) {
@@ -558,11 +638,15 @@ void main() {
   }
 }
 
-Widget _buildApp(_WidgetScriptRepository repository) {
+Widget _buildApp(
+  _WidgetScriptRepository repository, {
+  DuoToolbarController? duoToolbarController,
+}) {
   return MalttoApp(
     scriptListViewModel: ScriptListViewModel(repository),
     createScriptViewModel: () => ScriptCreateViewModel(repository),
     readingSetupBuilder: (_) => const SizedBox.shrink(),
+    duoToolbarController: duoToolbarController,
   );
 }
 
@@ -625,5 +709,46 @@ final class _WidgetScriptRepository implements ScriptRepository {
   Future<void> delete(int id) async {
     scripts.removeWhere((script) => script.id == id);
     _controller.add(List.unmodifiable(scripts));
+  }
+}
+
+final class _FakeDuoToolbarController implements DuoToolbarController {
+  _FakeDuoToolbarController({required this.isVertical});
+
+  bool isVertical;
+  final visibilityChanges = <bool>[];
+  Future<void> Function()? _onOpenCreate;
+  void Function(bool isVertical)? _onVerticalToolbarChanged;
+
+  @override
+  Future<bool> isVerticalToolbar() async => isVertical;
+
+  @override
+  Future<void> setAddVisible(bool visible) async {
+    visibilityChanges.add(visible);
+  }
+
+  @override
+  void setHandlers({
+    required Future<void> Function() onOpenCreate,
+    required void Function(bool isVertical) onVerticalToolbarChanged,
+  }) {
+    _onOpenCreate = onOpenCreate;
+    _onVerticalToolbarChanged = onVerticalToolbarChanged;
+  }
+
+  void openCreate() {
+    unawaited(_onOpenCreate?.call());
+  }
+
+  void changePlacement(bool value) {
+    isVertical = value;
+    _onVerticalToolbarChanged?.call(value);
+  }
+
+  @override
+  void dispose() {
+    _onOpenCreate = null;
+    _onVerticalToolbarChanged = null;
   }
 }
